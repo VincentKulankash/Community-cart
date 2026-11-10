@@ -34,13 +34,13 @@ def create_app(config_class=Config):
         return jsonify({"error":"Unauthorized. Please log in."}), 401
 
     from routes.auth import auth_bp
-    from routes.favorites import favourites_bp
+    from routes.favorites import favorites_bp
     from routes.inquiries import inquiries_bp
     from routes.listings import listings_bp
     from routes.offers import offers_bp
 
     app.register_blueprint(auth_bp)
-    app.register_blueprint(favourites_bp)
+    app.register_blueprint(favorites_bp)
     app.register_blueprint(inquiries_bp)
     app.register_blueprint(listings_bp)
     app.register_blueprint(offers_bp)
