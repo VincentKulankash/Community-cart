@@ -1,8 +1,12 @@
-# OWNER: MEMBER 2 (Models & Database)
-# TASKS:
-# 1. Define UserSchema (name, email, password, location).
-# 2. Validate email format and password length (min 8).
-# 3. Exclude password_hash from any output.
+from marshmallow import Schema, fields, validate
 
 
-# Member 2 will fill this in
+class UserSchema(Schema):
+    name = fields.String(required=True, validate=validate.Length(min=1))
+    email = fields.Email(required=True)
+    password = fields.String(
+        required=True,
+        load_only=True,
+        validate=validate.Length(min=8)
+    )
+    location = fields.String(load_default=None, allow_none=True)
