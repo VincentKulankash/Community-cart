@@ -33,7 +33,9 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Dining+Table",
         "status": "active",
-        "offer_days": 3,          # live auction, two competing offers
+        "offer_days": 3,          
+        "location": "Portland, OR",
+        # live auction, two competing offers
     },
     {
         "title": "Pair of mid-century bedside tables",
@@ -43,6 +45,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Bedside+Tables",
         "status": "active",
+        "location": "Seattle, WA",
     },
     {
         "title": "Blue commuter bicycle",
@@ -52,6 +55,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Bicycle",
         "status": "active",
+        "location": "Austin, TX",
     },
     {
         "title": "Cast iron Dutch oven",
@@ -61,6 +65,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Dutch+Oven",
         "status": "sold",
+        "location": "Denver, CO",
         # No offer window for sold listings.
     },
     {
@@ -71,6 +76,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Guitar",
         "status": "active",
+        "location": "Chicago, IL",
     },
     {
         "title": "Adjustable desk lamp",
@@ -80,6 +86,7 @@ LISTING_DATA = [
         "condition": "Like New",
         "image_url": "https://placehold.co/600x400?text=Desk+Lamp",
         "status": "active",
+        "location": "Portland, OR",
     },
     {
         "title": "Compact espresso machine",
@@ -89,6 +96,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Espresso+Machine",
         "status": "active",
+        "location": "Seattle, WA",
     },
     {
         "title": "Kids' balance bike",
@@ -98,6 +106,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Balance+Bike",
         "status": "sold",
+        "location": "Austin, TX",
     },
     {
         "title": "Vintage denim jacket",
@@ -107,6 +116,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Denim+Jacket",
         "status": "active",
+        "location": "Denver, CO",
     },
     {
         "title": "Two-shelf bookcase",
@@ -116,6 +126,7 @@ LISTING_DATA = [
         "condition": "Fair",
         "image_url": "https://placehold.co/600x400?text=Bookcase",
         "status": "active",
+        "location": "Chicago, IL",
     },
     {
         "title": "Ceramic planter set",
@@ -125,6 +136,7 @@ LISTING_DATA = [
         "condition": "Like New",
         "image_url": "https://placehold.co/600x400?text=Planters",
         "status": "active",
+        "location": "Seattle, WA",
     },
     {
         "title": "Insulated camping tent",
@@ -134,7 +146,9 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Tent",
         "status": "active",
-        "offer_days": 5,          # live auction, one offer
+        "offer_days": 5,          
+        "location": "Austin, TX",
+        # live auction, one offer
     },
     {
         "title": "Cordless drill and bit set",
@@ -144,6 +158,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Drill",
         "status": "sold",
+        "location": "Denver, CO",
     },
     {
         "title": "Paperback mystery collection",
@@ -153,6 +168,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Mystery+Books",
         "status": "active",
+        "location": "Chicago, IL",
     },
     {
         "title": "Bluetooth bookshelf speakers",
@@ -162,6 +178,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Speakers",
         "status": "active",
+        "location": "Portland, OR",
     },
     {
         "title": "Handmade wool area rug",
@@ -171,7 +188,9 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Area+Rug",
         "status": "active",
-        "offer_days": 1,          # auction closing soon, no offers yet
+        "offer_days": 1,         
+        "location": "Seattle, WA",
+         # auction closing soon, no offers yet
     },
     {
         "title": "Stainless steel cookware set",
@@ -181,6 +200,7 @@ LISTING_DATA = [
         "condition": "Like New",
         "image_url": "https://placehold.co/600x400?text=Cookware",
         "status": "active",
+        "location": "Denver, CO",
     },
     {
         "title": "Road bike helmet",
@@ -190,6 +210,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Helmet",
         "status": "active",
+        "location": "Chicago, IL",
     },
     {
         "title": "Solid pine writing desk",
@@ -199,6 +220,7 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Writing+Desk",
         "status": "active",
+        "location": "Chicago, IL",
     },
     {
         "title": "Board game bundle",
@@ -208,7 +230,9 @@ LISTING_DATA = [
         "condition": "Good",
         "image_url": "https://placehold.co/600x400?text=Board+Games",
         "status": "active",
-        "offer_days": -1,         # already closed; useful for expired-auction UI
+        "offer_days": -1,         
+        "location": "Denver, CO",
+        # already closed; useful for expired-auction UI
     },
 ]
 
@@ -231,6 +255,16 @@ OFFER_DATA = [
     {"buyer_email": "amara.okafor@example.com", "listing_title": "Solid oak dining table", "amount": "215.00", "message": "Can do $215, cash today."},
     {"buyer_email": "maya.chen@example.com", "listing_title": "Insulated camping tent", "amount": "70.00", "message": "Would you accept $70?"},
 ]
+
+def _clear_old_data():
+    """Wipe all existing data. Orders matters because of foreign keys"""
+    db.session.query(Offer).delete()
+    db.session.query(Inquiry).delete()
+    db.session.query(Favorite).delete()
+    db.session.query(Listing).delete()
+    db.session.query(User).delete()
+    db.session.commit()
+    log.info("Cleared existing data.")
 
 
 def _seed_users():
@@ -325,11 +359,9 @@ def seed_database():
     with app.app_context():
         # Schema creation is left to migrations (`flask db upgrade`).
 
-        if User.query.first() is not None:
-            log.info("Database is not empty; skipping seed.")
-            return
-
         try:
+            print('Clearing out old data...')
+            _clear_old_data()
             users_by_email = _seed_users()
             listings_by_title = _seed_listings(users_by_email)
             _seed_favorites(users_by_email, listings_by_title)
