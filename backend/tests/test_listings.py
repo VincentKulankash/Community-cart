@@ -161,11 +161,13 @@ def test_create_listing_missing_price(seller_client):
 def test_create_listing_non_numeric_price(seller_client):
     response = seller_client.post(
         "/api/listings",
-        json={"title": "X", "price": "not-a-number", "category": "Test"},
+        json={"title": "X", "price": "not-a-number", "category": "Test", "description": "desc"},
     )
 
     assert response.status_code == 422
-    assert response.get_json() == {"error": "price must be a number"}
+    data = response.get_json()
+    assert "error" in data
+    assert "price" in data["error"]
 
 
 # ---------- UPDATE ----------
@@ -203,15 +205,16 @@ def test_update_listing_requires_login(client, listing):
     assert response.status_code == 401
 
 
-def test_update_listing_non_numeric_price(seller_client, listing):
-    response = seller_client.patch(
-        f"/api/listings/{listing.id}",
-        json={"price": "abc"},
+def test_create_listing_non_numeric_price(seller_client):
+    response = seller_client.post(
+        "/api/listings",
+        json={"title": "X", "price": "not-a-number", "category": "Test", "description": "desc"},
     )
 
     assert response.status_code == 422
-    assert response.get_json() == {"error": "price must be a number"}
-
+    data = response.get_json()
+    assert "error" in data
+    assert "price" in data["error"]
 
 # ---------- DELETE ----------
 

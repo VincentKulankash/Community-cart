@@ -1,4 +1,3 @@
-
 from datetime import datetime
 
 from flask_login import UserMixin
@@ -19,25 +18,26 @@ class User(db.Model, UserMixin):
     listings = db.relationship(
         "Listing",
         back_populates="seller",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
+        foreign_keys="Listing.user_id",   # disambiguate: user_id is the seller FK
     )
 
     favorites = db.relationship(
         "Favorite",
         back_populates="user",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     inquiries = db.relationship(
         "Inquiry",
         back_populates="buyer",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     offers = db.relationship(
         "Offer",
         back_populates="buyer",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     def set_password(self, password):
@@ -78,6 +78,12 @@ class Listing(db.Model):
         nullable=False
     )
 
+    winner_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=True
+    )
+
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,
@@ -91,25 +97,26 @@ class Listing(db.Model):
     # Relationships
     seller = db.relationship(
         "User",
-        back_populates="listings"
+        back_populates="listings",
+        foreign_keys=[user_id],           # disambiguate: seller is user_id
     )
 
     favorites = db.relationship(
         "Favorite",
         back_populates="listing",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     inquiries = db.relationship(
         "Inquiry",
         back_populates="listing",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
     offers = db.relationship(
         "Offer",
         back_populates="listing",
-        cascade="all, delete-orphan"
+        cascade="all, delete-orphan",
     )
 
 

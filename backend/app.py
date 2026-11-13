@@ -49,7 +49,7 @@ def create_app(config_class=Config):
     def not_found(error):
         return jsonify({"error":"Resource not found"}), 404
 
-    @app.errorhandler(505)
+    @app.errorhandler(500)
     def internal_error(error):
         db.session.rollback()
         return jsonify({"error":"Internal Server error"}), 500

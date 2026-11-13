@@ -90,7 +90,7 @@ def list_offers(listing_id):
     return jsonify({
         "listing_id": listing.id,
         "status": listing.status,
-        # "winner_id": listing.winner_id,  # TO DO: enable after winner_id column is added
+        "winner_id": listing.winner_id,  
         "offers": [_serialize_offer(o) for o in offers],
     }), 200
 
@@ -140,7 +140,7 @@ def close_auction(listing_id):
 
     return jsonify({
         "message": "Auction closed",
-        # "winner_id": listing.winner_id,  # TO DO: enable after winner_id column is added
+        "winner_id": listing.winner_id,
         "winner_offer_id": winner.id if winner else None,
         "status": listing.status,
     }), 200

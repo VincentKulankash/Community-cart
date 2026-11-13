@@ -194,6 +194,7 @@ def test_close_already_closed_returns_400(seller_client, listing):
     response = seller_client.post(f"/api/listings/{listing.id}/offers/close")
     assert response.status_code == 400
 
+       # ← add this
 
 def test_non_owner_cannot_close_auction(buyer_client, listing):
     response = buyer_client.post(f"/api/listings/{listing.id}/offers/close")

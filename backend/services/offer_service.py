@@ -8,21 +8,20 @@
 # - Email failures must be logged, never block the offer submission.
 # - Keep pure business logic here; routes should call these functions.
 
-# Vincent will fill this in
-
 import os
-import smtplib  #SMPT simple mail transfer protocol - it lets you connect to a mail server live.smtp.mailtrap.io and send it
+import smtplib
 import logging
 from datetime import datetime
-from email.mime.text import MIMEText #The actualmessage content
-from email.mime.multipart import MIMEMultipart  #This is the email container MIME - multipurpose internet mail extensions
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 from extensions import db
 from models import Listing, Offer, User
 
 logger = logging.getLogger(__name__)
 
-#validation
+
+# ---------- VALIDATION ----------
 def can_user_offer(user_id, listing):
     """Return (ok, error_message)."""
     if listing.user_id == user_id:
@@ -36,7 +35,7 @@ def can_user_offer(user_id, listing):
     return True, None
 
 
-#highest offer logic
+# ---------- HIGHEST OFFER LOGIC ----------
 def get_highest_offer(listing_id):
     """Return the current highest active offer (tie-break: earliest)."""
     return (
@@ -47,7 +46,7 @@ def get_highest_offer(listing_id):
     )
 
 
-#email (mailtrap)
+# ---------- EMAIL (MAILTRAP) ----------
 def send_outbid_email(outbid_buyer, listing, new_amount):
     """Send 'you've been outbid' email via Mailtrap. Never raises."""
     try:
@@ -60,10 +59,10 @@ def send_outbid_email(outbid_buyer, listing, new_amount):
             logger.warning("Mailtrap credentials missing; skipping outbid email")
             return
 
-        msg= MIMEMultipart("alternative")
-        msg["subject"] = f"You've been outbid on '{listing.title}'"
-        msg["from"] = "notifications@localloop.local"
-        msg["to"] = outbid_buyer.email
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = f"You've been outbid on '{listing.title}'"
+        msg["From"] = "notifications@localloop.local"
+        msg["To"] = outbid_buyer.email
 
         body = (
             f"Hi {outbid_buyer.name},\n\n"
@@ -76,17 +75,17 @@ def send_outbid_email(outbid_buyer, listing, new_amount):
         msg.attach(MIMEText(body, "plain"))
 
         with smtplib.SMTP(server, port) as smtp:
-            smtp.starttls()  #upgrade the connection toencrypted (TLS)
+            smtp.starttls()
             smtp.login(username, password)
             smtp.sendmail(msg["From"], [outbid_buyer.email], msg.as_string())
 
-            logger.info(f"Outbid email sent to  {outbid_buyer.email}")
+        logger.info(f"Outbid email sent to {outbid_buyer.email}")
     except Exception as e:
         # Fire-and-forget: never block the offer because email failed
         logger.error(f"Failed to send outbid email: {e}")
 
 
-#submit offer
+# ---------- SUBMIT OFFER ----------
 def submit_offer(user_id, listing, amount, message=None):
     """
     Create or replace the current user's active offer.
@@ -96,28 +95,27 @@ def submit_offer(user_id, listing, amount, message=None):
     if not ok:
         return None, err
 
-    #find previous highest offer before we insert new one
+    # Find previous highest offer BEFORE we insert the new one
     previous_top = get_highest_offer(listing.id)
 
-    #deactivate any existing offer by this user on this listing
+    # Deactivate any existing offer by this user on this listing
     existing = (
         db.session.query(Offer)
         .filter_by(listing_id=listing.id, buyer_id=user_id, is_active=True)
         .first()
     )
-
     if existing:
         existing.is_active = False
 
     new_offer = Offer(
-        listing_id = listing.id,
+        listing_id=listing.id,
         buyer_id=user_id,
         amount=amount,
         message=message,
         is_active=True,
     )
     db.session.add(new_offer)
-    db.session.flush() #get new_offer.id before commit
+    db.session.flush()  # get new_offer.id before commit
 
     if (
         previous_top
@@ -129,7 +127,7 @@ def submit_offer(user_id, listing, amount, message=None):
 
         # Send the outbid email once, and only once
         if not previous_top.outbid_notified:
-            outbid_buyer = db.session.query(User).get(previous_top.buyer_id)
+            outbid_buyer = db.session.get(User, previous_top.buyer_id)
             if outbid_buyer:
                 send_outbid_email(outbid_buyer, listing, new_offer.amount)
                 previous_top.outbid_notified = True
@@ -141,17 +139,13 @@ def submit_offer(user_id, listing, amount, message=None):
     return new_offer, None
 
 
-#Close auction
-def close_listing_auction (listing):
+# ---------- CLOSE AUCTION ----------
+def close_listing_auction(listing):
     """
     Determine the winning offer and mark the listing as sold.
-    Idempotent: safe to call multiple times
+    Idempotent: safe to call multiple times.
     Returns (winner_offer or None, did_close: bool).
-
-    Note: winner_id column is deferred 
-    Winner is tracked vis Offer.is_winner until the coumn is added.
     """
-
     if listing.status in ("sold", "closed"):
         return None, False
 
@@ -160,16 +154,16 @@ def close_listing_auction (listing):
     if winning:
         winning.is_winner = True
         winning.is_active = False
-        #To do listing.winner_id = winning.buyer_id 
-
+        listing.winner_id = winning.buyer_id
         listing.status = "sold"
     else:
-        listing.status = 'closed'
+        listing.status = "closed"
 
     db.session.commit()
-    return winning,True
+    return winning, True
 
-#auto close on read
+
+# ---------- AUTO-CLOSE ON READ ----------
 def auto_close_if_expired(listing):
     """If deadline has passed and status is still open, close it."""
     if (

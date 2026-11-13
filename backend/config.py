@@ -1,25 +1,29 @@
-# OWNER: VINCENT (Scrum Master / Integration)
-# TASKS:
-# 1. Load environment variables from .env.
-# 2. Set up SQLALCHEMY_DATABASE_URI (SQLite by default).
-# 3. Set up SECRET_KEY for session cookies.
-# 4. Set up TestingConfig (in-memory SQLite).
-
 import os
 from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
+    # Require SECRET_KEY — no fallback in production
+    SECRET_KEY = os.environ.get("SECRET_KEY")
+    if not SECRET_KEY:
+        raise RuntimeError(
+            "SECRET_KEY environment variable is not set. "
+            "Generate one with: python -c 'import secrets; print(secrets.token_hex(32))'"
+        )
+
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///app.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = os.environ.get("FLASK_ENV") == "production"
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
+
 
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
+    WTF_CSRF_ENABLED = False
