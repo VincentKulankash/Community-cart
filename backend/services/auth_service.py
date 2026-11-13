@@ -1,5 +1,5 @@
-from backend.extensions import bcrypt
-from backend.models import User
+from extensions import bcrypt
+from models import User
 
 
 # 1. Hash passwords

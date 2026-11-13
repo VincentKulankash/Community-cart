@@ -60,34 +60,33 @@ def buyer(app):
 
 
 @pytest.fixture
-def seller_client(client, seller):
+def seller_client(app, seller):
     """Provide a test client logged in as the seller."""
-    response = client.post(
+    c = app.test_client()
+    response = c.post(
         "/api/auth/login",
         json={
             "email": seller.email,
             "password": "SellerPass123",
         },
     )
-
     assert response.status_code == 200
-    return client
+    return c
 
 
 @pytest.fixture
-def buyer_client(client, buyer):
+def buyer_client(app, buyer):
     """Provide a test client logged in as the buyer."""
-    response = client.post(
+    c = app.test_client()
+    response = c.post(
         "/api/auth/login",
         json={
             "email": buyer.email,
             "password": "BuyerPass123",
         },
     )
-
     assert response.status_code == 200
-    return client
-
+    return c
 
 @pytest.fixture
 def listing(app, seller):

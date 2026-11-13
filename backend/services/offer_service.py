@@ -119,16 +119,20 @@ def submit_offer(user_id, listing, amount, message=None):
     db.session.add(new_offer)
     db.session.flush() #get new_offer.id before commit
 
-    if(
+    if (
         previous_top
         and previous_top.buyer_id != user_id
         and new_offer.amount > previous_top.amount
-        and not previous_top.outbid_notified
     ):
-        outbid_buyer = db.session.query(User).get(previous_top.buyer_id)
-        if outbid_buyer:
-            send_outbid_email(outbid_buyer, listing, new_offer.amount)
-            previous_top.outbid_notified = True
+        # Deactivate the previous top offer — it's no longer the best bid
+        previous_top.is_active = False
+
+        # Send the outbid email once, and only once
+        if not previous_top.outbid_notified:
+            outbid_buyer = db.session.query(User).get(previous_top.buyer_id)
+            if outbid_buyer:
+                send_outbid_email(outbid_buyer, listing, new_offer.amount)
+                previous_top.outbid_notified = True
 
     if listing.status == "active":
         listing.status = "open_for_offers"
