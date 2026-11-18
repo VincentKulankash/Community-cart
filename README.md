@@ -1,3 +1,26 @@
+<<<<<<< HEAD
+# LocalLoop
+
+LocalLoop makes local second-hand sales fairer with private sealed offers and
+deadlines: buyers browse listings without an account, and the highest offer
+wins when a listing closes.
+
+## Frontend
+
+The React/Vite prototype is in [`frontend/`](./frontend/). To run it locally:
+
+```sh
+cd frontend
+npm install
+npm run dev
+```
+
+The frontend loads DummyJSON products and curated demo listings to fill a
+500-item catalog, and keeps LocalLoop-specific demo state in browser storage.
+DummyJSON writes are simulated and overlaid locally. See
+[`frontend/README.md`](./frontend/README.md) for details and the Flask
+integration boundary.
+=======
 # Community Cart
 
 A local community marketplace API where users buy, sell, and make private sealed offers on second-hand items nearby.
@@ -73,3 +96,4 @@ bash
 gunicorn "app:create_app()" --bind 0.0.0.0:5000
 The Procfile and runtime.txt in the backend folder are ready for Render deployment.
 
+>>>>>>> 6dc48fdde7fe69426c9b55e27b42d241026eaf3d
