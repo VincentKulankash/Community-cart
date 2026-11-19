@@ -1,40 +1,57 @@
 
+import { useEffect, useState } from "react";
 import { Leaf } from "lucide-react";
 
 import Hero from "../components/Hero";
 import Manifesto from "../components/Manifesto";
 import SellStrip from "../components/SellStrip";
+import ListingCard from "../components/ListingCard";
+import { getListings } from "../services/listings";
 
-/*
- * DEVELOPER: Olentiki
- * RESPONSIBILITY: Homepage UI development and enhancement.
- *
- * MAIN FILES:
- * - Home.jsx: Main homepage layout and section composition.
- * - Hero.jsx: Main hero section.
- * - Manifesto.jsx: Brand introduction.
- * - SellStrip.jsx: Selling call-to-action section.
- * - ListingCard.jsx: Reusable listing display.
- * - home.css: Homepage styling.
- *
- * TASKS:
- * - Improve and expand the homepage UI.
- * - Add new homepage sections where appropriate.
- * - Arrange existing sections into a consistent layout.
- * - Reuse existing components where possible.
- * - Ensure responsive layouts on desktop and mobile.
- * - Maintain the existing application's navigation and routing.
- *
- * RULES:
- * - Keep homepage composition in Home.jsx.
- * - Keep individual section markup in its respective component.
- * - Keep homepage-specific styles in home.css.
- * - Do not introduce dummy listings.
- * - Do not duplicate existing shared components.
- * - Coordinate changes to shared components with other developers.
- */
+const HOMEPAGE_LISTING_LIMIT = 4;
 
 function Home({ onShowAllFinds, onCreateListing }) {
+  const [listings, setListings] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadListings() {
+      try {
+        setLoading(true);
+        setError("");
+
+        const data = await getListings();
+
+        if (!Array.isArray(data)) {
+          throw new Error("Unexpected response from the listings server.");
+        }
+
+        if (isMounted) {
+          setListings(data.filter((listing) => listing.status === "active"));
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err.message || "Unable to load listings.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadListings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const displayedListings = listings.slice(0, HOMEPAGE_LISTING_LIMIT);
+
   return (
     <main>
       <Hero onShowAllFinds={onShowAllFinds} />
@@ -64,7 +81,6 @@ function Home({ onShowAllFinds, onCreateListing }) {
         </div>
       </div>
 
-      {/* Backend marketplace listings will be integrated here. */}
       <section
         className="finds-section"
         id="finds"
@@ -84,6 +100,50 @@ function Home({ onShowAllFinds, onCreateListing }) {
             </p>
           </div>
         </div>
+
+        {loading && (
+          <p className="finds-message" role="status">
+            Finding good things near you...
+          </p>
+        )}
+
+        {!loading && error && (
+          <p className="finds-message finds-error" role="alert">
+            {error}
+          </p>
+        )}
+
+        {!loading && !error && listings.length === 0 && (
+          <p className="finds-message">
+            No active listings available right now. Check back soon!
+          </p>
+        )}
+
+        {!loading && !error && listings.length > 0 && (
+          <>
+            <div className="listing-grid">
+              {displayedListings.map((listing, index) => (
+                <ListingCard
+                  key={listing.id}
+                  listing={listing}
+                  index={index}
+                />
+              ))}
+            </div>
+
+            {listings.length > HOMEPAGE_LISTING_LIMIT && (
+              <div className="finds-more">
+                <button
+                  type="button"
+                  className="finds-more-button"
+                  onClick={onShowAllFinds}
+                >
+                  Show more finds
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </section>
 
       <Manifesto onShowAllFinds={onShowAllFinds} />

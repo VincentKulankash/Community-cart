@@ -7,6 +7,7 @@ import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
 import Home from "./pages/Home";
+import Listings from "./pages/Listings";
 import Login from "./pages/login";
 import Register from "./pages/register";
 
@@ -24,11 +25,6 @@ import { getCurrentUser, logoutUser } from "./services/auth";
   - Coordinate shared components.
   - Manage global notifications.
   - Preserve global scroll and reveal effects.
-
-  NOTES:
-  - Marketplace listings will be integrated with the backend later.
-  - Do not introduce demo listing data.
-  - Page-specific functionality belongs in its respective component.
 */
 
 function readSavedItems() {
@@ -253,10 +249,7 @@ function App() {
    */
   function showAllFinds() {
     setSavedOnly(false);
-
-    document
-      .getElementById("finds")
-      ?.scrollIntoView({ behavior: "smooth" });
+    navigate("/listings");
   }
 
   function openSellMessage() {
@@ -308,10 +301,18 @@ function App() {
         onCreateListing={openSellMessage}
       />
 
-      <Home
-        onShowAllFinds={showAllFinds}
-        onCreateListing={openSellMessage}
-      />
+      {currentPath === "/listings" ? (
+        <Listings
+          onNavigate={navigate}
+          savedItems={savedItems}
+          onToggleSaved={toggleSaved}
+        />
+      ) : (
+        <Home
+          onShowAllFinds={showAllFinds}
+          onCreateListing={openSellMessage}
+        />
+      )}
 
       <Footer onNavigate={navigate} />
 
