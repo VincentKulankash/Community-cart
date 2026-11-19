@@ -14,6 +14,10 @@ import {
   X,
 } from "lucide-react";
 
+import Login from "./pages/login";
+import Register from "./pages/register";
+import { getCurrentUser, logoutUser } from "./services/auth";
+
 const demoListings = [
   {
     id: "local-1",
@@ -140,6 +144,8 @@ function App() {
   const [visibleCount, setVisibleCount] = useState(8);
   const [toast, setToast] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
+  const [currentPath, setCurrentPath] = useState(window.location.pathname);
+  const [currentUser, setCurrentUser] = useState(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -174,6 +180,21 @@ function App() {
   }, []);
 
   useEffect(() => {
+    getCurrentUser()
+      .then(setCurrentUser)
+      .catch(() => setCurrentUser(null));
+  }, []);
+
+  useEffect(() => {
+    function handlePopState() {
+      setCurrentPath(window.location.pathname);
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
     window.localStorage.setItem("localloop:saved", JSON.stringify(savedItems));
   }, [savedItems]);
 
@@ -184,6 +205,9 @@ function App() {
   }, [toast]);
 
   useEffect(() => {
+    const appShell = document.querySelector(".app-shell");
+    if (!appShell) return;
+
     const header = document.querySelector(".site-header");
     const progress = document.querySelector(".scroll-progress span");
     const hero = document.querySelector(".hero");
@@ -229,7 +253,7 @@ function App() {
         revealObserver.observe(element);
       });
     });
-    revealMutationObserver.observe(document.querySelector(".app-shell"), {
+    revealMutationObserver.observe(appShell, {
       childList: true,
       subtree: true,
     });
@@ -245,7 +269,7 @@ function App() {
       hero?.removeEventListener("pointermove", updateHeroPointer);
       hero?.removeEventListener("pointerleave", resetHeroPointer);
     };
-  }, []);
+  }, [currentPath]);
 
   const listings = useMemo(() => {
     const remoteListings = products.map((product) => ({
@@ -279,6 +303,24 @@ function App() {
     });
   }, [activeCategory, listings, savedItems, savedOnly, search]);
 
+  function navigate(path) {
+    window.history.pushState({}, "", path);
+    setCurrentPath(path);
+    setMenuOpen(false);
+    window.scrollTo({ top: 0, behavior: "auto" });
+  }
+
+  async function handleLogout() {
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+      navigate("/");
+      setToast("You have been signed out");
+    } catch (error) {
+      setToast(error.message || "Unable to sign out");
+    }
+  }
+
   function toggleSaved(listing) {
     const isSaved = savedItems.includes(listing.id);
     setSavedItems((current) =>
@@ -298,10 +340,28 @@ function App() {
   }
 
   function openSellMessage() {
-    setToast("Listing tools are coming soon");
+  if (!currentUser) {
+    navigate("/login");
+    setToast("Please sign in before creating a listing");
+    return;
   }
 
+  setToast("Listing tools are coming soon");
+}
   const visibleListings = filteredListings.slice(0, visibleCount);
+
+  if (currentPath === "/login") {
+    return (
+      <Login
+        onNavigate={navigate}
+        onAuthSuccess={setCurrentUser}
+      />
+    );
+  }
+
+  if (currentPath === "/register") {
+    return <Register onNavigate={navigate} />;
+  }
 
   return (
     <div className="app-shell">
@@ -335,6 +395,37 @@ function App() {
           </button>
         </nav>
         <div className="header-actions">
+          {currentUser ? (
+            <>
+              <span className="header-user">
+                Hi, {currentUser.name}
+              </span>
+              <button
+                className="auth-header-button"
+                type="button"
+                onClick={handleLogout}
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                className="auth-header-button"
+                type="button"
+                onClick={() => navigate("/login")}
+              >
+                Sign in
+              </button>
+              <button
+                className="sell-button"
+                type="button"
+                onClick={() => navigate("/register")}
+              >
+                Create account
+              </button>
+            </>
+          )}
           <button className="sell-button" type="button" onClick={openSellMessage}>
             <span>+</span> List an item
           </button>
