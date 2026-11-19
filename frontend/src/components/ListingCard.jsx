@@ -5,28 +5,6 @@ import {
   MapPin,
 } from "lucide-react";
 
-/*
- * DEVELOPER: Vincent
- * RESPONSIBILITY: Display an individual marketplace listing.
- *
- * DATA SOURCE:
- * - Receives a listing object from the Flask listings API.
- *
- * EXPECTED BACKEND FIELDS:
- * - id
- * - title
- * - description
- * - price
- * - category
- * - location
- * - image_url
- * - condition
- * - status
- *
- * PARENT COMPONENT:
- * - Home.jsx
- */
-
 function formatPrice(price) {
   return new Intl.NumberFormat("en-KE", {
     style: "currency",
@@ -91,7 +69,7 @@ function ListingCard({
           type="button"
           onClick={() => onQuickView?.(listing)}
         >
-          Quick view <ArrowUpRight size={14} />
+          View details <ArrowUpRight size={14} />
         </button>
       </div>
 

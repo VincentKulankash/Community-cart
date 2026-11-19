@@ -52,7 +52,9 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
   const categories = useMemo(
     () => [
       "All categories",
-      ...new Set(listings.map((listing) => listing.category).filter(Boolean)),
+      ...new Set(
+        listings.map((listing) => listing.category).filter(Boolean)
+      ),
     ],
     [listings]
   );
@@ -67,8 +69,12 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
 
       const matchesSearch =
         !query ||
-        [listing.title, listing.description, listing.location, listing.category]
-          .some((value) => value?.toLowerCase().includes(query));
+        [
+          listing.title,
+          listing.description,
+          listing.location,
+          listing.category,
+        ].some((value) => value?.toLowerCase().includes(query));
 
       return matchesCategory && matchesSearch;
     });
@@ -89,7 +95,8 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
         <div className="section-heading">
           <div>
             <div className="eyebrow">
-              <span className="eyebrow-dot" /> THE LOCAL MARKETPLACE
+              <span className="eyebrow-dot" />
+              THE LOCAL MARKETPLACE
             </div>
 
             <h2>Find something good.</h2>
@@ -103,6 +110,7 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
         <div className="marketplace-controls">
           <div className="marketplace-search">
             <Search size={18} />
+
             <input
               type="search"
               placeholder="Search for something..."
@@ -152,12 +160,16 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
                     index={index}
                     isSaved={savedItems.includes(listing.id)}
                     onToggleSaved={onToggleSaved}
+                    onQuickView={(selectedListing) =>
+                      onNavigate(`/listings/${selectedListing.id}`)
+                    }
                   />
                 ))}
               </div>
             ) : (
               <p className="finds-message">
-                No listings match your search. Try another keyword or category.
+                No listings match your search. Try another keyword or
+                category.
               </p>
             )}
           </>

@@ -10,7 +10,7 @@ import { getListings } from "../services/listings";
 
 const HOMEPAGE_LISTING_LIMIT = 4;
 
-function Home({ onShowAllFinds, onCreateListing }) {
+function Home({ onShowAllFinds, onCreateListing, onNavigate }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -127,6 +127,9 @@ function Home({ onShowAllFinds, onCreateListing }) {
                   key={listing.id}
                   listing={listing}
                   index={index}
+                  onQuickView={(selectedListing) =>
+                    onNavigate(`/listings/${selectedListing.id}`)
+                  }
                 />
               ))}
             </div>

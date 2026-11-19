@@ -6,7 +6,24 @@
   Main website footer.
 */
 
-function Footer({ onNavigate }) {
+function Footer({ onNavigate, isMarketplace = false }) {
+  function handleBackToGoodStuff(event) {
+    event.preventDefault();
+
+    if (isMarketplace) {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    document.getElementById("finds")?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
   return (
     <footer className="site-footer">
       <a
@@ -30,7 +47,12 @@ function Footer({ onNavigate }) {
 
       <span>Good things go around. © 2025 LocalLoop</span>
 
-      <a href="#finds">Back to the good stuff ↑</a>
+      <a
+        href={isMarketplace ? "#top" : "#finds"}
+        onClick={handleBackToGoodStuff}
+      >
+        Back to the good stuff ↑
+      </a>
     </footer>
   );
 }

@@ -8,6 +8,7 @@ import Footer from "./components/Footer";
 
 import Home from "./pages/Home";
 import Listings from "./pages/Listings";
+import ListingDetails from "./pages/ListingDetails";
 import Login from "./pages/login";
 import Register from "./pages/register";
 
@@ -18,13 +19,6 @@ import { getCurrentUser, logoutUser } from "./services/auth";
 
   RESPONSIBILITY:
   Main application coordinator.
-
-  TASKS:
-  - Manage authentication state.
-  - Manage application navigation.
-  - Coordinate shared components.
-  - Manage global notifications.
-  - Preserve global scroll and reveal effects.
 */
 
 function readSavedItems() {
@@ -39,7 +33,6 @@ function readSavedItems() {
 function App() {
   const [savedItems, setSavedItems] = useState(readSavedItems);
   const [savedOnly, setSavedOnly] = useState(false);
-
   const [toast, setToast] = useState("");
 
   const [currentPath, setCurrentPath] = useState(
@@ -48,18 +41,12 @@ function App() {
 
   const [currentUser, setCurrentUser] = useState(null);
 
-  /*
-   * Authentication session check
-   */
   useEffect(() => {
     getCurrentUser()
       .then(setCurrentUser)
       .catch(() => setCurrentUser(null));
   }, []);
 
-  /*
-   * Browser back and forward navigation
-   */
   useEffect(() => {
     function handlePopState() {
       setCurrentPath(window.location.pathname);
@@ -72,9 +59,6 @@ function App() {
     };
   }, []);
 
-  /*
-   * Persist saved items
-   */
   useEffect(() => {
     window.localStorage.setItem(
       "localloop:saved",
@@ -82,9 +66,6 @@ function App() {
     );
   }, [savedItems]);
 
-  /*
-   * Toast notification timeout
-   */
   useEffect(() => {
     if (!toast) return undefined;
 
@@ -216,7 +197,6 @@ function App() {
       await logoutUser();
 
       setCurrentUser(null);
-
       navigate("/");
 
       setToast("You have been signed out");
@@ -255,14 +235,23 @@ function App() {
   function openSellMessage() {
     if (!currentUser) {
       navigate("/login");
-
       setToast("Please sign in before creating a listing");
-
       return;
     }
 
     setToast("Listing tools are coming soon");
   }
+
+  /*
+   * Listing details route
+   */
+  const listingDetailsMatch = currentPath.match(
+    /^\/listings\/(\d+)$/
+  );
+
+  const selectedListingId = listingDetailsMatch
+    ? listingDetailsMatch[1]
+    : null;
 
   /*
    * Authentication pages
@@ -301,7 +290,14 @@ function App() {
         onCreateListing={openSellMessage}
       />
 
-      {currentPath === "/listings" ? (
+      {selectedListingId ? (
+        <ListingDetails
+          listingId={selectedListingId}
+          currentUser={currentUser}
+          onNavigate={navigate}
+          onNotify={setToast}
+        />
+      ) : currentPath === "/listings" ? (
         <Listings
           onNavigate={navigate}
           savedItems={savedItems}
@@ -311,10 +307,14 @@ function App() {
         <Home
           onShowAllFinds={showAllFinds}
           onCreateListing={openSellMessage}
+          onNavigate={navigate}
         />
       )}
 
-      <Footer onNavigate={navigate} />
+      <Footer
+        onNavigate={navigate}
+        isMarketplace={currentPath === "/listings"}
+      />
 
       {toast && (
         <div className="toast" role="status">
