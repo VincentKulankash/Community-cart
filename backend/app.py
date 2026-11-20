@@ -42,7 +42,13 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     migrate.init_app(app, db)
 
-    cors.init_app(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+    cors.init_app(
+        app, 
+        supports_credentials=True, 
+        origins=[
+            "http://localhost:3000",
+            "http://127.0.0.1:3000"
+        ])
 
     @login_manager.user_loader
     def load_user(user_id):
