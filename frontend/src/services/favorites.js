@@ -1,17 +1,22 @@
-import { apiRequest } from "./api";
+import { get, post, remove } from "./api";
 
+const FAVORITES_ENDPOINT = "/api/favorites";
+
+// Retrieve the logged-in user's favourites.
 export function getFavorites() {
-  return apiRequest("/favorites");
+  return get(FAVORITES_ENDPOINT);
 }
 
+// Add a listing to favourites.
 export function addFavorite(listingId) {
-  return apiRequest(`/favorites/${listingId}`, {
-    method: "POST",
-  });
+  return post(
+    `${FAVORITES_ENDPOINT}/${encodeURIComponent(listingId)}`
+  );
 }
 
+// Remove a listing from favourites.
 export function removeFavorite(listingId) {
-  return apiRequest(`/favorites/${listingId}`, {
-    method: "DELETE",
-  });
+  return remove(
+    `${FAVORITES_ENDPOINT}/${encodeURIComponent(listingId)}`
+  );
 }

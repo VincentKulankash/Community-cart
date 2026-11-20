@@ -158,7 +158,7 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
                     key={listing.id}
                     listing={listing}
                     index={index}
-                    isSaved={savedItems.includes(listing.id)}
+                    isSaved={savedItems.includes(Number(listing.id))}
                     onToggleSaved={onToggleSaved}
                     onQuickView={(selectedListing) =>
                       onNavigate(`/listings/${selectedListing.id}`)

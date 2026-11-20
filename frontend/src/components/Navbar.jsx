@@ -28,6 +28,13 @@ function Navbar({
     onNavigate(path);
   }
 
+  function handleSavedClick() {
+    setMenuOpen(false);
+
+    // Navigate to the current user's saved listings.
+    onNavigate("/favorites");
+  }
+
   return (
     <header className="site-header">
       <a
@@ -43,30 +50,39 @@ function Navbar({
           <span />
           <span />
         </span>
+
         <span>
           local<span className="wordmark-light">loop</span>
         </span>
       </a>
 
       <nav className={`main-nav ${menuOpen ? "is-open" : ""}`}>
-        <a href="#finds" onClick={() => setMenuOpen(false)}>
+        <a
+          href="#finds"
+          onClick={() => setMenuOpen(false)}
+        >
           Explore
         </a>
 
-        <a href="#how-it-works" onClick={() => setMenuOpen(false)}>
+        <a
+          href="#how-it-works"
+          onClick={() => setMenuOpen(false)}
+        >
           How it works
         </a>
 
         <button
           className={savedOnly ? "nav-saved active" : "nav-saved"}
           type="button"
-          onClick={() => {
-            onToggleSaved();
-            setMenuOpen(false);
-          }}
+          onClick={handleSavedClick}
         >
-          <Heart size={16} fill={savedOnly ? "currentColor" : "none"} />
+          <Heart
+            size={16}
+            fill={savedOnly ? "currentColor" : "none"}
+          />
+
           Saved
+
           {savedCount > 0 && (
             <span className="saved-count">{savedCount}</span>
           )}

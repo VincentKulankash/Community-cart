@@ -9,30 +9,27 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Listings from "./pages/Listings";
 import ListingDetails from "./pages/ListingDetails";
+import Favorites from "./pages/Favorites";
 import Login from "./pages/login";
 import Register from "./pages/register";
 
 import { getCurrentUser, logoutUser } from "./services/auth";
+import {
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+} from "./services/favorites";
 
 /*
   DEVELOPER: Vincent
 
   RESPONSIBILITY:
   Main application coordinator.
+  Manages navigation, authentication and database-backed favourites.
 */
 
-function readSavedItems() {
-  try {
-    const saved = window.localStorage.getItem("localloop:saved");
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-}
-
 function App() {
-  const [savedItems, setSavedItems] = useState(readSavedItems);
-  const [savedOnly, setSavedOnly] = useState(false);
+  const [savedItems, setSavedItems] = useState([]);
   const [toast, setToast] = useState("");
 
   const [currentPath, setCurrentPath] = useState(
@@ -41,12 +38,57 @@ function App() {
 
   const [currentUser, setCurrentUser] = useState(null);
 
+  /*
+   * Get the currently logged-in user.
+   */
   useEffect(() => {
     getCurrentUser()
       .then(setCurrentUser)
       .catch(() => setCurrentUser(null));
   }, []);
 
+  /*
+   * Fetch the logged-in user's favourites from the database.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFavorites() {
+      if (!currentUser) {
+        setSavedItems([]);
+        return;
+      }
+
+      try {
+        const response = await getFavorites();
+
+        if (cancelled) return;
+
+        const favorites = response?.favorites || [];
+
+        const favoriteIds = favorites
+          .map((favorite) => Number(favorite.listing_id))
+          .filter((id) => Number.isFinite(id));
+
+        setSavedItems(favoriteIds);
+      } catch (error) {
+        if (!cancelled) {
+          setSavedItems([]);
+          setToast(error.message || "Unable to load saved listings");
+        }
+      }
+    }
+
+    loadFavorites();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser]);
+
+  /*
+   * Handle browser back and forward navigation.
+   */
   useEffect(() => {
     function handlePopState() {
       setCurrentPath(window.location.pathname);
@@ -59,13 +101,9 @@ function App() {
     };
   }, []);
 
-  useEffect(() => {
-    window.localStorage.setItem(
-      "localloop:saved",
-      JSON.stringify(savedItems)
-    );
-  }, [savedItems]);
-
+  /*
+   * Automatically dismiss toast notifications.
+   */
   useEffect(() => {
     if (!toast) return undefined;
 
@@ -77,7 +115,7 @@ function App() {
   }, [toast]);
 
   /*
-   * Global scroll, hero pointer and reveal animations
+   * Global scroll, hero pointer and reveal animations.
    */
   useEffect(() => {
     const appShell = document.querySelector(".app-shell");
@@ -176,7 +214,7 @@ function App() {
   }, [currentPath]);
 
   /*
-   * Application navigation
+   * Application navigation.
    */
   function navigate(path) {
     window.history.pushState({}, "", path);
@@ -190,13 +228,15 @@ function App() {
   }
 
   /*
-   * Logout
+   * Logout.
    */
   async function handleLogout() {
     try {
       await logoutUser();
 
       setCurrentUser(null);
+      setSavedItems([]);
+
       navigate("/");
 
       setToast("You have been signed out");
@@ -206,29 +246,53 @@ function App() {
   }
 
   /*
-   * Saved items
+   * Add or remove a favourite through the backend.
    */
-  function toggleSaved(listing) {
-    const isSaved = savedItems.includes(listing.id);
+  async function toggleSaved(listing) {
+    if (!currentUser) {
+      navigate("/login");
+      setToast("Please sign in to save listings");
+      return;
+    }
 
-    setSavedItems((current) =>
-      isSaved
-        ? current.filter((id) => id !== listing.id)
-        : [...current, listing.id]
-    );
+    const listingId = Number(listing.id);
 
-    setToast(
-      isSaved
-        ? "Removed from your saved finds"
-        : "Saved for later"
-    );
+    if (!Number.isFinite(listingId)) {
+      setToast("Invalid listing");
+      return;
+    }
+
+    const isSaved = savedItems.includes(listingId);
+
+    try {
+      if (isSaved) {
+        await removeFavorite(listingId);
+
+        setSavedItems((current) =>
+          current.filter((id) => id !== listingId)
+        );
+
+        setToast("Removed from your saved finds");
+      } else {
+        await addFavorite(listingId);
+
+        setSavedItems((current) =>
+          current.includes(listingId)
+            ? current
+            : [...current, listingId]
+        );
+
+        setToast("Saved for later");
+      }
+    } catch (error) {
+      setToast(error.message || "Unable to update saved listings");
+    }
   }
 
   /*
-   * Homepage actions
+   * Homepage actions.
    */
   function showAllFinds() {
-    setSavedOnly(false);
     navigate("/listings");
   }
 
@@ -243,7 +307,7 @@ function App() {
   }
 
   /*
-   * Listing details route
+   * Listing details route.
    */
   const listingDetailsMatch = currentPath.match(
     /^\/listings\/(\d+)$/
@@ -254,7 +318,7 @@ function App() {
     : null;
 
   /*
-   * Authentication pages
+   * Authentication pages.
    */
   if (currentPath === "/login") {
     return (
@@ -270,7 +334,7 @@ function App() {
   }
 
   /*
-   * Main application layout
+   * Main application layout.
    */
   return (
     <div className="app-shell">
@@ -284,9 +348,9 @@ function App() {
         currentUser={currentUser}
         onNavigate={navigate}
         onLogout={handleLogout}
-        savedOnly={savedOnly}
+        savedOnly={currentPath === "/favorites"}
         savedCount={savedItems.length}
-        onToggleSaved={() => setSavedOnly((current) => !current)}
+        onToggleSaved={() => navigate("/favorites")}
         onCreateListing={openSellMessage}
       />
 
@@ -296,6 +360,11 @@ function App() {
           currentUser={currentUser}
           onNavigate={navigate}
           onNotify={setToast}
+        />
+      ) : currentPath === "/favorites" ? (
+        <Favorites
+          currentUser={currentUser}
+          onNavigate={navigate}
         />
       ) : currentPath === "/listings" ? (
         <Listings
@@ -313,7 +382,10 @@ function App() {
 
       <Footer
         onNavigate={navigate}
-        isMarketplace={currentPath === "/listings"}
+        isMarketplace={
+          currentPath === "/listings" ||
+          currentPath === "/favorites"
+        }
       />
 
       {toast && (
