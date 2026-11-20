@@ -16,6 +16,7 @@ import {
 
 import Login from "./pages/login";
 import Register from "./pages/register";
+import Favorites from "./pages/Favorites";
 import { getCurrentUser, logoutUser } from "./services/auth";
 
 const demoListings = [
@@ -363,6 +364,10 @@ function App() {
     return <Register onNavigate={navigate} />;
   }
 
+  if (currentPath === "/favorites") {
+    return <Favorites currentUser={currentUser} onNavigate={navigate} />;
+  }
+
   return (
     <div className="app-shell">
       <div className="scroll-progress" aria-hidden="true"><span /></div>
@@ -381,17 +386,12 @@ function App() {
           <a href="#finds" onClick={() => setMenuOpen(false)}>Explore</a>
           <a href="#how-it-works" onClick={() => setMenuOpen(false)}>How it works</a>
           <button
-            className={savedOnly ? "nav-saved active" : "nav-saved"}
+            className={currentPath === "/favorites" ? "nav-saved active" : "nav-saved"}
             type="button"
-            onClick={() => {
-              setSavedOnly((current) => !current);
-              setVisibleCount(8);
-              setMenuOpen(false);
-            }}
+            onClick={() => navigate("/favorites")}
           >
-            <Heart size={16} fill={savedOnly ? "currentColor" : "none"} />
-            Saved
-            {savedItems.length > 0 && <span className="saved-count">{savedItems.length}</span>}
+            <Heart size={16} />
+            Favourites
           </button>
         </nav>
         <div className="header-actions">
