@@ -56,12 +56,14 @@ def create_app(config_class=Config):
     from routes.favorites import favorites_bp
     from routes.inquiries import inquiries_bp
     from routes.listings import listings_bp
+    from routes.mock_catalog import mock_catalog_bp
     from routes.offers import offers_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(favorites_bp)
     app.register_blueprint(inquiries_bp)
     app.register_blueprint(listings_bp)
+    app.register_blueprint(mock_catalog_bp)
     app.register_blueprint(offers_bp)
 
     @app.errorhandler(404)
