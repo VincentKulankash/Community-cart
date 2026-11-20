@@ -10,6 +10,7 @@ import {
   MapPin,
   Menu,
   Search,
+  ShoppingCart,
   Sparkles,
   X,
 } from "lucide-react";
@@ -17,7 +18,10 @@ import {
 import Login from "./pages/login";
 import Register from "./pages/register";
 import Favorites from "./pages/Favorites";
+import Cart from "./pages/Cart";
 import { getCurrentUser, logoutUser } from "./services/auth";
+import { apiRequest } from "./services/api";
+import { addToCart } from "./services/cart";
 
 const demoListings = [
   {
@@ -136,6 +140,8 @@ function readSavedItems() {
 
 function App() {
   const [products, setProducts] = useState([]);
+  const [backendListings, setBackendListings] = useState([]);
+  const [cartBusyIds, setCartBusyIds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [feedError, setFeedError] = useState("");
   const [savedItems, setSavedItems] = useState(readSavedItems);
@@ -178,6 +184,24 @@ function App() {
 
     loadProducts();
     return () => controller.abort();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+
+    apiRequest("/listings")
+      .then((data) => {
+        if (active) {
+          setBackendListings(Array.isArray(data) ? data : []);
+        }
+      })
+      .catch((error) => {
+        console.error("Unable to load community listings:", error);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -273,6 +297,16 @@ function App() {
   }, [currentPath]);
 
   const listings = useMemo(() => {
+    const communityListings = backendListings
+      .filter((listing) => ["active", "open_for_offers"].includes(listing.status))
+      .map((listing) => ({
+        ...listing,
+        isBackendListing: true,
+        image: listing.image_url,
+        tint: "sand",
+        note: listing.condition || "Community listing",
+      }));
+
     const remoteListings = products.map((product) => ({
       id: `product-${product.id}`,
       title: product.title,
@@ -285,8 +319,8 @@ function App() {
       note: product.brand || "A good find, ready to go around",
     }));
 
-    return [...demoListings, ...remoteListings];
-  }, [products]);
+    return [...communityListings, ...demoListings, ...remoteListings];
+  }, [backendListings, products]);
 
   const filteredListings = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -319,6 +353,30 @@ function App() {
       setToast("You have been signed out");
     } catch (error) {
       setToast(error.message || "Unable to sign out");
+    }
+  }
+
+  async function handleAddToCart(listing) {
+    if (!currentUser) {
+      navigate("/login");
+      setToast("Please sign in before adding items to your cart");
+      return;
+    }
+
+    if (!listing.isBackendListing) return;
+
+    const listingId = Number(listing.id);
+    if (!Number.isInteger(listingId) || cartBusyIds.includes(listingId)) return;
+
+    setCartBusyIds((current) => [...current, listingId]);
+
+    try {
+      await addToCart(listingId);
+      setToast(`${listing.title} added to your cart`);
+    } catch (error) {
+      setToast(error.message || "Unable to add this item to your cart");
+    } finally {
+      setCartBusyIds((current) => current.filter((id) => id !== listingId));
     }
   }
 
@@ -368,6 +426,10 @@ function App() {
     return <Favorites currentUser={currentUser} onNavigate={navigate} />;
   }
 
+  if (currentPath === "/cart") {
+    return <Cart currentUser={currentUser} onNavigate={navigate} />;
+  }
+
   return (
     <div className="app-shell">
       <div className="scroll-progress" aria-hidden="true"><span /></div>
@@ -392,6 +454,14 @@ function App() {
           >
             <Heart size={16} />
             Favourites
+          </button>
+          <button
+            className={currentPath === "/cart" ? "nav-saved active" : "nav-saved"}
+            type="button"
+            onClick={() => navigate("/cart")}
+          >
+            <ShoppingCart size={16} />
+            Cart
           </button>
         </nav>
         <div className="header-actions">
@@ -596,7 +666,7 @@ function App() {
                   <div className="listing-image-wrap">
                     <img className="listing-image" src={listing.image} alt={listing.title} loading="lazy" />
                     <div className="card-spotlight" aria-hidden="true" />
-                    {listing.id.startsWith("local-") && <span className="local-tag"><Sparkles size={11} /> LOCAL PICK</span>}
+                    {typeof listing.id === "string" && listing.id.startsWith("local-") && <span className="local-tag"><Sparkles size={11} /> LOCAL PICK</span>}
                     <button
                       className={savedItems.includes(listing.id) ? "save-button is-saved" : "save-button"}
                       type="button"
@@ -622,6 +692,17 @@ function App() {
                       <span className="listing-price">{formatPrice(listing.price)}</span>
                     </div>
                     <div className="listing-location"><MapPin size={12} /> {listing.location}</div>
+                    {listing.isBackendListing && (
+                      <button
+                        className="add-to-cart-button"
+                        type="button"
+                        disabled={cartBusyIds.includes(Number(listing.id))}
+                        onClick={() => handleAddToCart(listing)}
+                      >
+                        {cartBusyIds.includes(Number(listing.id)) ? "Adding..." : "Add to cart"}
+                        <ShoppingCart size={15} />
+                      </button>
+                    )}
                   </div>
                 </article>
               ))}

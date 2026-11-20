@@ -40,6 +40,12 @@ class User(db.Model, UserMixin):
         cascade="all, delete-orphan",
     )
 
+    cart_items = db.relationship(
+        "CartItem",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
     def set_password(self, password):
         self.password_hash = bcrypt.generate_password_hash(
             password
@@ -115,6 +121,12 @@ class Listing(db.Model):
 
     offers = db.relationship(
         "Offer",
+        back_populates="listing",
+        cascade="all, delete-orphan",
+    )
+
+    cart_items = db.relationship(
+        "CartItem",
         back_populates="listing",
         cascade="all, delete-orphan",
     )
@@ -249,4 +261,53 @@ class Offer(db.Model):
     buyer = db.relationship(
         "User",
         back_populates="offers"
+    )
+
+class CartItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False
+    )
+
+    listing_id = db.Column(
+        db.Integer,
+        db.ForeignKey("listing.id"),
+        nullable=False
+    )
+
+    quantity = db.Column(
+        db.Integer,
+        nullable=False,
+        default=1
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "listing_id",
+            name="unique_user_listing_cart"
+        ),
+        CheckConstraint(
+            "quantity >= 1",
+            name="check_cart_quantity"
+        ),
+    )
+
+    user = db.relationship(
+        "User",
+        back_populates="cart_items"
+    )
+
+    listing = db.relationship(
+        "Listing",
+        back_populates="cart_items"
     )
