@@ -57,13 +57,13 @@ function Login({ onNavigate, onAuthSuccess }) {
           onClick={() => onNavigate("/")}
         >
           <ArrowLeft size={18} />
-          Back to LocalLoop
+          Back to Community-cart
         </button>
 
         <div className="auth-card">
           <div className="auth-brand">
-            <span className="auth-brand-icon">L</span>
-            <span>LocalLoop</span>
+            <span className="auth-brand-icon">C</span>
+            <span>ommunity-Cart</span>
           </div>
 
           <div className="auth-heading">
@@ -137,7 +137,7 @@ function Login({ onNavigate, onAuthSuccess }) {
           </form>
 
           <p className="auth-switch">
-            New to LocalLoop?{" "}
+            New to Community-Cart?{" "}
             <button type="button" onClick={() => onNavigate("/register")}>
               Create an account
             </button>

@@ -198,7 +198,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .button-secondary { min-height: 39px; padding: 0 18px; display: inline-flex; align-items: center; gap: 17px; border: 1px solid rgba(255,255,255,.55); border-radius: 40px; background: transparent; color: white; font-size: 9px; font-weight: 600; cursor: pointer; transition: background .2s, border .2s, transform .2s; }
 .button-secondary:hover { transform: translateY(-2px); border-color: var(--red); background: var(--red); }
 
-.manifesto { min-height: 460px; position: relative; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8vw; padding: 76px clamp(24px, 12vw, 180px); overflow: hidden; background: radial-gradient(ellipse at 20% 50%, #37090e 0%, #150709 42%, #090909 76%); }
+.manifesto { min-height: 460px; position: relative; display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 8vw; padding: 76px clamp(24px, 12vw, 180px); overflow: hidden; border-radius: 40px; background: radial-gradient(ellipse at 20% 50%, #37090e 0%, #150709 42%, #090909 76%); }
 .manifesto::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(90deg, transparent 0, transparent calc(33.333% - 1px), rgba(255,255,255,.07) calc(33.333% - 1px), rgba(255,255,255,.07) 33.333%); pointer-events: none; }
 .manifesto-art { position: relative; width: min(100%, 390px); aspect-ratio: 1.12; display: grid; place-items: center; }
 .manifesto-orbit { position: absolute; width: 86%; aspect-ratio: 1; border: 1px solid rgba(255,80,93,.3); border-radius: 50%; }
@@ -214,14 +214,14 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 .manifesto-link span { width: 29px; height: 29px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.65); border-radius: 50%; transition: background .2s, color .2s, border-color .2s; }
 .manifesto-link:hover span { border-color: var(--red); background: var(--red); color: white; }
 .manifesto-side-note { position: absolute; top: 50%; right: 20px; color: #b6989b; font-size: 7px; letter-spacing: .16em; writing-mode: vertical-rl; transform: translateY(-50%); }
-.sell-strip { min-height: 112px; padding: 24px clamp(24px, 8.5vw, 132px); display: flex; align-items: center; gap: 15px; background: var(--red); }
+.sell-strip { min-height: 112px; padding: 24px clamp(24px, 8.5vw, 132px); display: flex; align-items: center; gap: 15px; border-radius: 40px 40px 40px 40px; background: var(--red); }
 .sell-strip-icon { width: 38px; height: 38px; display: grid; flex: 0 0 auto; place-items: center; border: 1px solid rgba(255,255,255,.65); border-radius: 50%; color: white; }
 .sell-strip > span:nth-child(2) { color: #ffe4e4; font-size: 9px; line-height: 1.7; }
 .sell-strip strong { color: white; font-size: 11px; }
 .sell-strip button { margin-left: auto; padding: 10px 0 10px 18px; display: inline-flex; gap: 10px; align-items: center; border: 0; background: transparent; color: white; font-size: 10px; font-weight: 700; cursor: pointer; }
 .sell-strip button svg { transition: transform .2s; }
 .sell-strip button:hover svg { transform: translateX(4px); }
-.site-footer { min-height: 83px; padding: 18px clamp(24px, 6vw, 94px); display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid rgba(255,255,255,.13); background: #080808; color: #aaa4a3; font-size: 8px; }
+.site-footer { min-height: 83px; padding: 18px clamp(24px, 6vw, 94px); display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid rgba(255,255,255,.13); border-radius: 40px 40px 0 0; background: #080808; color: #aaa4a3; font-size: 8px; }
 .footer-wordmark { font-size: 17px; }
 .footer-wordmark .wordmark-symbol { transform: scale(.85); transform-origin: left center; }
 .site-footer > a:last-child { color: #e3dcdb; }
@@ -588,6 +588,41 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid 
 
 .auth-password-toggle:hover {
   color: #24734e;
+}
+
+.auth-location-button {
+  width: 100%;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid rgba(40, 56, 69, 0.20);
+  border-radius: 9px;
+  background: #fffefa;
+  color: #344239;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+}
+
+.auth-location-button:hover:not(:disabled) {
+  border-color: #ffa649;
+  background: #fff8ed;
+  transform: translateY(-1px);
+}
+
+.auth-location-button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.auth-location-status {
+  margin: -2px 0 0;
+  color: #71808a;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .auth-submit-button {

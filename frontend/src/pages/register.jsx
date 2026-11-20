@@ -4,9 +4,11 @@ import {
   ArrowLeft,
   Eye,
   EyeOff,
+  LoaderCircle,
   LockKeyhole,
   Mail,
   MapPin,
+  Navigation,
   User,
 } from "lucide-react";
 import { registerUser } from "../services/auth";
@@ -22,8 +24,10 @@ function Register({ onNavigate }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [locating, setLocating] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [locationStatus, setLocationStatus] = useState("");
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -32,6 +36,55 @@ function Register({ onNavigate }) {
       ...previous,
       [name]: value,
     }));
+  }
+
+  function useCurrentLocation() {
+    setError("");
+    setLocationStatus("");
+
+    if (!navigator.geolocation) {
+      setLocationStatus("Location is not supported by this browser.");
+      return;
+    }
+
+    setLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        const latitude = coords.latitude.toFixed(5);
+        const longitude = coords.longitude.toFixed(5);
+
+        setFormData((previous) => ({
+          ...previous,
+          location: `Current location (${latitude}, ${longitude})`,
+        }));
+        setLocationStatus("Current location added.");
+        setLocating(false);
+      },
+      (locationError) => {
+        if (locationError.code === locationError.PERMISSION_DENIED) {
+          setLocationStatus(
+            "Location permission was denied. Enter your area manually instead.",
+          );
+        } else if (locationError.code === locationError.POSITION_UNAVAILABLE) {
+          setLocationStatus(
+            "Your location is unavailable. Enter your area manually instead.",
+          );
+        } else if (locationError.code === locationError.TIMEOUT) {
+          setLocationStatus(
+            "Finding your location took too long. Try again or enter it manually.",
+          );
+        } else {
+          setLocationStatus("Unable to find your location.");
+        }
+        setLocating(false);
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000,
+      },
+    );
   }
 
   async function handleSubmit(event) {
@@ -80,13 +133,13 @@ function Register({ onNavigate }) {
           onClick={() => onNavigate("/")}
         >
           <ArrowLeft size={18} />
-          Back to LocalLoop
+          Back to Community-cart
         </button>
 
         <div className="auth-card">
           <div className="auth-brand">
-            <span className="auth-brand-icon">L</span>
-            <span>LocalLoop</span>
+            <span className="auth-brand-icon">C</span>
+            <span>ommunity-Cart</span>
           </div>
 
           <div className="auth-heading">
@@ -153,12 +206,30 @@ function Register({ onNavigate }) {
                   id="register-location"
                   type="text"
                   name="location"
-                  placeholder="Your town or area"
+                  placeholder="Use your location or enter your area"
                   value={formData.location}
                   onChange={handleChange}
                   autoComplete="address-level2"
                 />
               </div>
+              <button
+                type="button"
+                className="auth-location-button"
+                onClick={useCurrentLocation}
+                disabled={locating}
+              >
+                {locating ? (
+                  <LoaderCircle size={16} className="spin" />
+                ) : (
+                  <Navigation size={16} />
+                )}
+                {locating ? "Finding your location..." : "Use my current location"}
+              </button>
+              {locationStatus && (
+                <p className="auth-location-status" role="status">
+                  {locationStatus}
+                </p>
+              )}
             </div>
 
             <div className="auth-field">
