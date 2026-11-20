@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
@@ -895,7 +895,6 @@ function App() {
           {toast}
         </div>
       )}
->>>>>>> 219016811c07d4782eaffa9640eb32161413b8ad
     </div>
   );
 }
