@@ -83,6 +83,14 @@ function Navbar({
             <button
               className="auth-header-button"
               type="button"
+              onClick={() => handleNavigate("/my-listings")}
+            >
+              My listings
+            </button>
+
+            <button
+              className="auth-header-button"
+              type="button"
               onClick={() => {
                 setMenuOpen(false);
                 onLogout();

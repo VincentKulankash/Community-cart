@@ -42,6 +42,11 @@ export function getListings(filters = {}) {
   );
 }
 
+// Retrieve listings owned by the authenticated user.
+export function getMyListings() {
+  return get(`${LISTINGS_ENDPOINT}/mine`);
+}
+
 // Retrieve a single listing by ID.
 export function getListingById(id) {
   return get(`${LISTINGS_ENDPOINT}/${encodeURIComponent(id)}`);

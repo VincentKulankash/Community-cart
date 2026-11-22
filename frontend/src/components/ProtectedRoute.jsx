@@ -13,3 +13,29 @@
  * - This is frontend navigation protection only.
  * - Backend endpoints must independently enforce authentication and authorization.
  */
+
+function ProtectedRoute({
+  currentUser,
+  authLoading = false,
+  onNavigate,
+  children,
+}) {
+  if (authLoading) {
+    return (
+      <main className="listing-form-page">
+        <p className="listing-form-status" role="status">
+          Checking your session...
+        </p>
+      </main>
+    );
+  }
+
+  if (!currentUser) {
+    onNavigate("/login");
+    return null;
+  }
+
+  return children;
+}
+
+export default ProtectedRoute;

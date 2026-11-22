@@ -71,6 +71,14 @@ def get_listings():
     return jsonify([to_dict(l) for l in listings])
 
 
+@listings_bp.get("/mine")
+@login_required
+def get_my_listings():
+    """List listings owned by the authenticated user."""
+    listings = Listing.query.filter_by(user_id=current_user.id).order_by(Listing.id.desc()).all()
+    return jsonify([to_dict(l) for l in listings])
+
+
 @listings_bp.get("/<int:id>")
 def get_listing(id):
     """

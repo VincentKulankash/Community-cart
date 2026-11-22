@@ -9,8 +9,12 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Listings from "./pages/Listings";
 import ListingDetails from "./pages/ListingDetails";
+import CreateListing from "./pages/CreateListing";
+import EditListing from "./pages/EditListing";
+import MyListings from "./pages/MyListings";
 import Login from "./pages/login";
 import Register from "./pages/register";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 import { getCurrentUser, logoutUser } from "./services/auth";
 
@@ -40,11 +44,13 @@ function App() {
   );
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
     getCurrentUser()
       .then(setCurrentUser)
-      .catch(() => setCurrentUser(null));
+      .catch(() => setCurrentUser(null))
+      .finally(() => setAuthLoading(false));
   }, []);
 
   useEffect(() => {
@@ -238,8 +244,7 @@ function App() {
       setToast("Please sign in before creating a listing");
       return;
     }
-
-    setToast("Listing tools are coming soon");
+    navigate("/create-listing");
   }
 
   /*
@@ -252,6 +257,10 @@ function App() {
   const selectedListingId = listingDetailsMatch
     ? listingDetailsMatch[1]
     : null;
+
+  const listingEditMatch = currentPath.match(
+    /^\/listings\/([0-9]+)\/edit$/
+  );
 
   /*
    * Authentication pages
@@ -290,7 +299,43 @@ function App() {
         onCreateListing={openSellMessage}
       />
 
-      {selectedListingId ? (
+      {currentPath === "/create-listing" ? (
+        <ProtectedRoute
+          currentUser={currentUser}
+          authLoading={authLoading}
+          onNavigate={navigate}
+        >
+          <CreateListing
+            onNavigate={navigate}
+            onNotify={setToast}
+          />
+        </ProtectedRoute>
+      ) : currentPath === "/my-listings" ? (
+        <ProtectedRoute
+          currentUser={currentUser}
+          authLoading={authLoading}
+          onNavigate={navigate}
+        >
+          <MyListings
+            currentUser={currentUser}
+            onNavigate={navigate}
+            onNotify={setToast}
+          />
+        </ProtectedRoute>
+      ) : listingEditMatch ? (
+        <ProtectedRoute
+          currentUser={currentUser}
+          authLoading={authLoading}
+          onNavigate={navigate}
+        >
+          <EditListing
+            listingId={listingEditMatch[1]}
+            currentUser={currentUser}
+            onNavigate={navigate}
+            onNotify={setToast}
+          />
+        </ProtectedRoute>
+      ) : selectedListingId ? (
         <ListingDetails
           listingId={selectedListingId}
           currentUser={currentUser}
