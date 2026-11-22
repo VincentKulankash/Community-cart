@@ -1,0 +1,44 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Community Cart: Flask API",
+			"type": "shell",
+			"command": ".venv/bin/python",
+			"args": [
+				"-m",
+				"flask",
+				"--app",
+				"app:create_app",
+				"run",
+				"--host",
+				"0.0.0.0",
+				"--port",
+				"5000"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/backend"
+			},
+			"group": "build"
+		},
+		{
+			"label": "Community Cart: Vite storefront",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"dev",
+				"--",
+				"--host",
+				"0.0.0.0"
+			],
+			"isBackground": true,
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			}
+		}
+	]
+}

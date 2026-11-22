@@ -9,6 +9,7 @@
 # - Ensure CORS allows React on localhost:3000 with credentials.
 
 import os
+import re
 from flask_migrate import upgrade
 from flasgger import Swagger
 from flask import jsonify, Flask
@@ -42,7 +43,13 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     migrate.init_app(app, db)
 
-    cors.init_app(app, supports_credentials=True, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
+    cors.init_app(
+        app,
+        supports_credentials=True,
+        origins=[
+            re.compile(r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$"),
+        ],
+    )
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -57,12 +64,14 @@ def create_app(config_class=Config):
     from routes.inquiries import inquiries_bp
     from routes.listings import listings_bp
     from routes.offers import offers_bp
+    from underground.routes import underground_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(favorites_bp)
     app.register_blueprint(inquiries_bp)
     app.register_blueprint(listings_bp)
     app.register_blueprint(offers_bp)
+    app.register_blueprint(underground_bp)
 
     @app.errorhandler(404)
     def not_found(error):

@@ -1,75 +1,69 @@
 # Community Cart
 
-A local community marketplace API where users buy, sell, and make private sealed offers on second-hand items nearby.
+Community Cart is a neighborhood marketplace for second-hand goods. The React storefront connects to a Flask API for accounts, listings, favorites, inquiries, and private offers.
 
-Built with **Flask + SQLAlchemy + Marshmallow + Flask-Login**. Interactive API docs at `/apidocs` (Swagger UI). 68 automated tests.
+## Project structure
 
-## Live API
-- **Interactive Docs (Swagger UI):** [https://community-cart-giku.onrender.com/apidocs](https://community-cart-giku.onrender.com/apidocs)
-- **Base URL:** `https://community-cart-giku.onrender.com`
+- `frontend/` — React 19 and Vite application
+- `backend/` — Flask API, SQLAlchemy models, migrations, and seed data
 
-*(Note: The deployed instance uses an ephemeral SQLite database and starts empty. All endpoints and tests were verified locally.)*
+## Run the backend
 
----
+In one terminal:
 
-## Setup
-
-All commands run from **`client-with-sessions/backend/`**.
-
-### 1. Clone and enter the project
-
-```bash
-git clone https://github.com/VincentKulankash/Community-cart.git
-cd Community-cart/client-with-sessions/backend
-
-
-### 2. Create a virtual environment
-bash
-python3 -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-
-
-### 3. Install dependencies
-bash
+```sh
+cd backend
+python -m venv .venv
+# Windows PowerShell: .venv\Scripts\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
+```
 
+Create `backend/.env` with a secret key and local database URL:
 
-### 4. Configure environment variables
-bash
-cp .env.example .env
-Open .env and fill in:
-
-env
-SECRET_KEY=<generate with: python -c "import secrets; print(secrets.token_hex(32))">
+```env
+SECRET_KEY=replace-with-a-long-random-secret
 DATABASE_URL=sqlite:///app.db
-MAILTRAP_USERNAME=<from mailtrap.io sandbox>
-MAILTRAP_PASSWORD=<from mailtrap.io sandbox>
-MAILTRAP_SERVER=sandbox.smtp.mailtrap.io
-MAILTRAP_PORT=587
-Get Mailtrap credentials at mailtrap.io → Email Sandbox → SMTP Settings.
+MONGODB_URI=mongodb://127.0.0.1:27017/
+MONGODB_DATABASE=community_cart_underground
+UNDERGROUND_DEMO_MODE=true
+```
 
-### 5. Run migrations
-bash
-flask db upgrade
-### 6. Seed sample data (optional but recommended)
-bash
+With `UNDERGROUND_DEMO_MODE=true`, the Underground API serves its curated sample catalog directly and does not need MongoDB. Product examples use real product names and images, but retailer prices, stock, booking availability, and checkout are not connected. Set it to `false` when you want to read products from MongoDB; then configure `MONGODB_URI` and `MONGODB_DATABASE` for your local server or Atlas. The MongoDB URI is separate from the SQLite `DATABASE_URL` used by the main marketplace.
+
+Then initialize and start the API:
+
+```sh
+flask --app app:create_app db upgrade
 python seed.py
-Creates 5 users, 20 listings, 5 favorites, 3 inquiries, 3 offers. All seeded users share the password CommunityCart2026!. First user: maya.chen@example.com.
+flask --app app:create_app run
+```
 
-### 7. Start the server
-bash
-flask run
-API: http://127.0.0.1:5000
+`python seed.py` is optional demo data for a fresh local SQLite database. It clears existing records before reseeding, so don’t run it against a database with data you want to keep. When using MongoDB mode (`UNDERGROUND_DEMO_MODE=false`), `python -m underground.seed` adds the Underground sample catalog to MongoDB and requires at least one SQLite user.
 
-Swagger UI: http://127.0.0.1:5000/apidocs
+The API runs at `http://127.0.0.1:5000`; interactive documentation is at `/apidocs`. The sample accounts use the password `CommunityCart2026!`.
 
-Running tests
-bash
-pytest -v
-68 tests use an in-memory SQLite database — your real app.db is untouched.
+## Run the frontend
 
-Production start
-bash
-gunicorn "app:create_app()" --bind 0.0.0.0:5000
-The Procfile and runtime.txt in the backend folder are ready for Render deployment.
+In a second terminal:
 
+```sh
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:3000`. The frontend uses the Flask API at port 5000 by default. To point it at another API origin, create `frontend/.env.local` and set:
+
+```env
+VITE_API_BASE_URL=https://your-api.example.com
+```
+
+## Marketplace features
+
+- Browse and search active listings
+- Register, sign in, and maintain a server session
+- Create, update, mark sold, and delete your listings
+- Save favorites to your account
+- Send listing inquiries and private offers
+- Review offers on your listings and close an offer window

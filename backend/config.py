@@ -16,6 +16,7 @@ class Config:
 
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///app.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    UNDERGROUND_DEMO_MODE = os.environ.get("UNDERGROUND_DEMO_MODE", "false").lower() == "true"
 
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
@@ -25,5 +26,6 @@ class Config:
 
 class TestingConfig(Config):
     TESTING = True
+    UNDERGROUND_DEMO_MODE = False
     SQLALCHEMY_DATABASE_URI = "sqlite:///:memory:"
     WTF_CSRF_ENABLED = False

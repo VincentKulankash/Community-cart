@@ -251,9 +251,9 @@ INQUIRY_DATA = [
 ]
 
 OFFER_DATA = [
-    {"buyer_email": "jordan.ellis@example.com", "listing_title": "Solid oak dining table", "amount": "200.00", "message": "Would you take $200 if I pick it up this weekend?"},
-    {"buyer_email": "amara.okafor@example.com", "listing_title": "Solid oak dining table", "amount": "215.00", "message": "Can do $215, cash today."},
-    {"buyer_email": "maya.chen@example.com", "listing_title": "Insulated camping tent", "amount": "70.00", "message": "Would you accept $70?"},
+    {"buyer_email": "jordan.ellis@example.com", "listing_title": "Solid oak dining table", "amount": "200.00", "message": "Would you take KES 200 if I pick it up this weekend?"},
+    {"buyer_email": "amara.okafor@example.com", "listing_title": "Solid oak dining table", "amount": "215.00", "message": "Can do KES 215, cash today."},
+    {"buyer_email": "maya.chen@example.com", "listing_title": "Insulated camping tent", "amount": "70.00", "message": "Would you accept KES 70?"},
 ]
 
 def _clear_old_data():

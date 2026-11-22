@@ -1,0 +1,36 @@
+.wordmark,
+.footer-wordmark,
+.auth-brand {
+  letter-spacing: -0.04em;
+}
+
+.announcement,
+.site-header,
+.site-footer,
+.auth-page,
+.auth-card,
+.loop-ticker,
+.manifesto,
+.sell-strip {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.button-primary,
+.sell-button,
+.auth-submit-button,
+.auth-location-button,
+.category-chip,
+.quick-view-button,
+.manifesto-link {
+  min-width: 44px;
+  touch-action: manipulation;
+}
+
+.listing-card,
+.listing-image-wrap,
+.manifesto,
+.sell-strip,
+.auth-card {
+  overflow-wrap: anywhere;
+}
