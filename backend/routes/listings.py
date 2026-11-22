@@ -80,6 +80,31 @@ def get_listings():
     return jsonify([to_dict(listing) for listing in listings])
 
 
+@listings_bp.get("/mine")
+@login_required
+def get_my_listings():
+    """
+    Get all listings belonging to the authenticated user.
+    ---
+    tags:
+      - Listings
+    security:
+      - cookieAuth: []
+    responses:
+      200:
+        description: Array of the authenticated user's listings
+      401:
+        description: Not logged in
+    """
+    listings = (
+        db.session.query(Listing)
+        .filter_by(user_id=current_user.id)
+        .all()
+    )
+
+    return jsonify([to_dict(listing) for listing in listings]), 200
+
+
 @listings_bp.get("/<int:id>")
 def get_listing(id):
     """

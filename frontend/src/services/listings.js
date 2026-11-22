@@ -47,6 +47,11 @@ export function getListingById(id) {
   return get(`${LISTINGS_ENDPOINT}/${encodeURIComponent(id)}`);
 }
 
+// Retrieve listings owned by the authenticated user.
+export function getMyListings() {
+  return get(`${LISTINGS_ENDPOINT}/mine`);
+}
+
 // Create a new listing.
 export function createListing(listingData) {
   return post(LISTINGS_ENDPOINT, listingData);

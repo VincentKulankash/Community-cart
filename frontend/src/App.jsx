@@ -10,6 +10,9 @@ import Home from "./pages/Home";
 import Listings from "./pages/Listings";
 import ListingDetails from "./pages/ListingDetails";
 import Favorites from "./pages/Favorites";
+import MyListings from "./pages/MyListings";
+import CreateListing from "./pages/CreateListing";
+import EditListing from "./pages/EditListing";
 import Login from "./pages/login";
 import Register from "./pages/register";
 
@@ -25,7 +28,7 @@ import {
 
   RESPONSIBILITY:
   Main application coordinator.
-  Manages navigation, authentication and database-backed favourites.
+  Manages navigation, authentication, favourites and listing management.
 */
 
 function App() {
@@ -303,15 +306,23 @@ function App() {
       return;
     }
 
-    setToast("Listing tools are coming soon");
+    navigate("/create-listing");
   }
 
   /*
-   * Listing details route.
+   * Listing route matching.
    */
+  const editListingMatch = currentPath.match(
+    /^\/listings\/(\d+)\/edit$/
+  );
+
   const listingDetailsMatch = currentPath.match(
     /^\/listings\/(\d+)$/
   );
+
+  const selectedEditListingId = editListingMatch
+    ? editListingMatch[1]
+    : null;
 
   const selectedListingId = listingDetailsMatch
     ? listingDetailsMatch[1]
@@ -354,9 +365,28 @@ function App() {
         onCreateListing={openSellMessage}
       />
 
-      {selectedListingId ? (
+      {selectedEditListingId ? (
+        <EditListing
+          listingId={selectedEditListingId}
+          currentUser={currentUser}
+          onNavigate={navigate}
+          onNotify={setToast}
+        />
+      ) : selectedListingId ? (
         <ListingDetails
           listingId={selectedListingId}
+          currentUser={currentUser}
+          onNavigate={navigate}
+          onNotify={setToast}
+        />
+      ) : currentPath === "/my-listings" ? (
+        <MyListings
+          currentUser={currentUser}
+          onNavigate={navigate}
+          onNotify={setToast}
+        />
+      ) : currentPath === "/create-listing" ? (
+        <CreateListing
           currentUser={currentUser}
           onNavigate={navigate}
           onNotify={setToast}
@@ -384,7 +414,8 @@ function App() {
         onNavigate={navigate}
         isMarketplace={
           currentPath === "/listings" ||
-          currentPath === "/favorites"
+          currentPath === "/favorites" ||
+          currentPath === "/my-listings"
         }
       />
 
