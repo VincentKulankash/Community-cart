@@ -1,0 +1,115 @@
+/* Homepage hero: floating atom (pure CSS, 3D transforms).
+   Uses the tokens defined in src/styles.css. */
+
+.hero-atom { width: 100%; }
+
+.atom-stage {
+  position: relative;
+  height: 300px;
+  overflow: hidden;
+  perspective: 900px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255, 166, 73, 0.32), transparent 62%),
+    linear-gradient(165deg, var(--card) 0%, var(--tint) 100%);
+}
+
+/* Perspective floor */
+.atom-grid {
+  position: absolute; left: 6%; right: 6%; bottom: 0; height: 46%;
+  background-image:
+    linear-gradient(rgba(40, 56, 69, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(40, 56, 69, 0.12) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(to bottom, transparent 0%, #000 70%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 70%, transparent 100%);
+  transform: rotateX(64deg);
+  transform-origin: bottom;
+  opacity: 0.8;
+}
+
+.atom-glow {
+  position: absolute; left: 50%; top: 46%;
+  width: 62%; aspect-ratio: 1;
+  translate: -50% -50%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 166, 73, 0.55), rgba(255, 166, 73, 0.12) 42%, transparent 70%);
+  animation: atom-glow 4s ease-in-out infinite alternate;
+}
+
+/* The atom itself */
+.atom-rig {
+  position: absolute; left: 50%; top: 45%;
+  width: 190px; aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  animation: atom-float 5s ease-in-out infinite;
+}
+
+.atom-orbit {
+  position: absolute; inset: 4%;
+  border: 2px solid rgba(40, 56, 69, 0.6);
+  border-radius: 50%;
+  box-shadow: 0 0 18px rgba(255, 166, 73, 0.25), inset 0 0 18px rgba(255, 166, 73, 0.14);
+}
+/* the "electron" riding each ring */
+.atom-orbit::after {
+  content: "";
+  position: absolute; top: -6px; left: calc(50% - 6px);
+  width: 12px; height: 12px; border-radius: 50%;
+  background: var(--orange-strong);
+  box-shadow: 0 0 12px rgba(247, 147, 42, 0.9);
+}
+
+.orbit-a { transform: rotateX(67deg) rotateZ(18deg); animation: atom-spin-a 11s linear infinite; }
+.orbit-b {
+  inset: 12%;
+  border-color: rgba(110, 74, 61, 0.5);
+  transform: rotateY(69deg) rotateZ(-20deg);
+  animation: atom-spin-b 8s linear infinite reverse;
+}
+.orbit-c {
+  inset: 22%;
+  border-width: 1px;
+  border-color: rgba(247, 147, 42, 0.85);
+  transform: rotateX(42deg) rotateY(38deg);
+  animation: atom-spin-c 14s linear infinite reverse;
+}
+.orbit-b::after, .orbit-c::after { width: 9px; height: 9px; top: -4.5px; left: calc(50% - 4.5px); background: var(--ink); box-shadow: none; }
+
+.atom-core {
+  position: absolute; inset: 31%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 34% 28%, #ffd9ae 0%, var(--orange) 24%, #d97745 54%, #6e4a3d 80%, var(--ink) 100%);
+  box-shadow:
+    0 22px 46px rgba(40, 56, 69, 0.28),
+    inset -12px -14px 26px rgba(40, 56, 69, 0.4),
+    inset 9px 9px 20px rgba(255, 255, 255, 0.42);
+}
+
+/* Ripple on the floor */
+.atom-pulse {
+  position: absolute; left: 50%; bottom: 7%;
+  width: 40%; height: 9%;
+  border: 1px solid rgba(40, 56, 69, 0.3);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  animation: atom-ring 2.8s ease-out infinite;
+}
+
+@media (min-width: 900px) {
+  .atom-stage { height: min(520px, 46vw); }
+  .atom-rig { width: clamp(240px, 24vw, 320px); }
+}
+
+@keyframes atom-float { 0%, 100% { translate: 0 0; } 50% { translate: 0 -14px; } }
+@keyframes atom-spin-a { to { transform: rotateX(67deg) rotateZ(378deg); } }
+@keyframes atom-spin-b { to { transform: rotateY(69deg) rotateZ(340deg); } }
+@keyframes atom-spin-c { to { transform: rotateX(42deg) rotateY(38deg) rotateZ(360deg); } }
+@keyframes atom-glow { from { opacity: 0.65; scale: 0.96; } to { opacity: 1; scale: 1.06; } }
+@keyframes atom-ring { 0% { opacity: 0.8; scale: 0.7; } 100% { opacity: 0; scale: 1.6; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .atom-rig, .atom-orbit, .atom-glow, .atom-pulse { animation: none; }
+}

@@ -1,13 +1,17 @@
+from datetime import datetime
+
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 
 from extensions import db
-from models import Listing
+from models import Listing, Offer
+from services.offer_service import accept_offer, auto_close_if_expired
 from services.listing_service import (
     filter_listings,
     get_owned_listing,
     mark_sold as mark_listing_sold,
 )
+
 
 listings_bp = Blueprint("listings_bp", __name__, url_prefix="/api/listings")
 
@@ -23,8 +27,16 @@ def to_dict(listing):
         "image_url": listing.image_url,
         "condition": listing.condition,
         "status": listing.status,
-        "offer_ends_at": listing.offer_ends_at.isoformat() if listing.offer_ends_at else None,
+        "offer_ends_at": (
+            listing.offer_ends_at.isoformat()
+            if listing.offer_ends_at
+            else None
+        ),
         "user_id": listing.user_id,
+        "seller_name": listing.seller.name if listing.seller else None,
+        "created_at": (
+            listing.created_at.isoformat() if listing.created_at else None
+        ),
     }
 
 
@@ -68,7 +80,38 @@ def get_listings():
         min_price=float(min_price) if min_price else None,
         max_price=float(max_price) if max_price else None,
     )
-    return jsonify([to_dict(l) for l in listings])
+
+    return jsonify([to_dict(listing) for listing in listings])
+
+
+@listings_bp.get("/mine")
+@login_required
+def get_my_listings():
+    """
+    Get all listings belonging to the authenticated user.
+    ---
+    tags:
+      - Listings
+    security:
+      - cookieAuth: []
+    responses:
+      200:
+        description: Array of the authenticated user's listings
+      401:
+        description: Not logged in
+    """
+    listings = (
+        db.session.query(Listing)
+        .filter_by(user_id=current_user.id)
+        .all()
+    )
+
+    # Keep statuses honest: a passed deadline becomes "awaiting_decision"
+    # (or "closed" with no offers) the moment the seller looks.
+    for listing in listings:
+        auto_close_if_expired(listing)
+
+    return jsonify([to_dict(listing) for listing in listings]), 200
 
 
 @listings_bp.get("/<int:id>")
@@ -90,8 +133,12 @@ def get_listing(id):
         description: Not found
     """
     listing = db.session.get(Listing, id)
+
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
+
+    auto_close_if_expired(listing)
+
     return jsonify(to_dict(listing))
 
 
@@ -129,6 +176,10 @@ def create_listing():
               type: string
             location:
               type: string
+            offer_ends_at:
+              type: string
+              format: date-time
+              description: Deadline for submitting offers
     responses:
       201:
         description: Created
@@ -139,8 +190,25 @@ def create_listing():
     """
     data = request.get_json(silent=True) or {}
 
-    if not data.get("title") or not data.get("price") or not data.get("category"):
-        return jsonify({"error": "title, price and category are required"}), 422
+    if (
+        not data.get("title")
+        or data.get("price") is None
+        or data.get("price") == ""
+        or not data.get("category")
+    ):
+        return jsonify({
+            "error": "title, price and category are required"
+        }), 422
+
+    offer_ends_at = None
+
+    if data.get("offer_ends_at"):
+        try:
+            offer_ends_at = datetime.fromisoformat(data["offer_ends_at"])
+        except (TypeError, ValueError):
+            return jsonify({
+                "error": "Invalid offer deadline format"
+            }), 422
 
     try:
         price = float(data["price"])
@@ -155,11 +223,14 @@ def create_listing():
         condition=data.get("condition"),
         image_url=data.get("image_url"),
         location=data.get("location"),
+        offer_ends_at=offer_ends_at,
         status="active",
         user_id=current_user.id,
     )
+
     db.session.add(listing)
     db.session.commit()
+
     return jsonify(to_dict(listing)), 201
 
 
@@ -184,20 +255,34 @@ def update_listing(id):
         schema:
           type: object
           properties:
-            title: { type: string }
-            description: { type: string }
-            price: { type: number }
-            category: { type: string }
-            condition: { type: string }
-            image_url: { type: string }
-            location: { type: string }
+            title:
+              type: string
+            description:
+              type: string
+            price:
+              type: number
+            category:
+              type: string
+            condition:
+              type: string
+            image_url:
+              type: string
+            location:
+              type: string
+            offer_ends_at:
+              type: string
+              format: date-time
+              description: Deadline for submitting offers
     responses:
       200:
         description: Updated
       404:
         description: Not found / not owned
+      422:
+        description: Validation error
     """
     listing = get_owned_listing(id, current_user)
+
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
 
@@ -205,23 +290,51 @@ def update_listing(id):
 
     if "title" in data:
         listing.title = data["title"]
+
     if "description" in data:
         listing.description = data["description"]
+
     if "price" in data:
         try:
             listing.price = float(data["price"])
         except (TypeError, ValueError):
             return jsonify({"error": "price must be a number"}), 422
+
     if "category" in data:
         listing.category = data["category"]
+
     if "condition" in data:
         listing.condition = data["condition"]
+
     if "image_url" in data:
         listing.image_url = data["image_url"]
+
     if "location" in data:
         listing.location = data["location"]
 
+    if "offer_ends_at" in data:
+        if data["offer_ends_at"] is None or data["offer_ends_at"] == "":
+            listing.offer_ends_at = None
+        else:
+            try:
+                listing.offer_ends_at = datetime.fromisoformat(
+                    data["offer_ends_at"]
+                )
+            except (TypeError, ValueError):
+                return jsonify({
+                    "error": "Invalid offer deadline format"
+                }), 422
+
+        # Extending the deadline reopens a listing that was waiting for the
+        # seller's decision.
+        if listing.status == "awaiting_decision" and (
+            listing.offer_ends_at is None
+            or listing.offer_ends_at > datetime.utcnow()
+        ):
+            listing.status = "open_for_offers"
+
     db.session.commit()
+
     return jsonify(to_dict(listing)), 200
 
 
@@ -247,11 +360,13 @@ def delete_listing(id):
         description: Not found / not owned
     """
     listing = get_owned_listing(id, current_user)
+
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
 
     db.session.delete(listing)
     db.session.commit()
+
     return jsonify({"message": "Listing deleted"}), 200
 
 
@@ -260,6 +375,10 @@ def delete_listing(id):
 def mark_sold(id):
     """
     Mark a listing as sold (owner only)
+
+    Optionally pass `offer_id` to sell to the buyer of a specific offer
+    (the seller's choice, not necessarily the highest). Without it the
+    listing is simply marked sold, e.g. when it sold outside the app.
     ---
     tags:
       - Listings
@@ -270,15 +389,38 @@ def mark_sold(id):
         in: path
         type: integer
         required: true
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            offer_id:
+              type: integer
+              description: The offer to accept
     responses:
       200:
         description: Listing marked sold
       404:
-        description: Not found / not owned
+        description: Not found / not owned / offer not found
     """
     listing = get_owned_listing(id, current_user)
+
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
 
-    mark_listing_sold(listing)
+    data = request.get_json(silent=True) or {}
+    offer_id = data.get("offer_id")
+
+    if offer_id is not None:
+        offer = db.session.get(Offer, offer_id) if isinstance(offer_id, int) else None
+        if not offer or offer.listing_id != listing.id:
+            return jsonify({"error": "Offer not found"}), 404
+
+        _, error = accept_offer(listing, offer)
+        if error:
+            return jsonify({"error": error}), 400
+    else:
+        mark_listing_sold(listing)
+
     return jsonify(to_dict(listing)), 200

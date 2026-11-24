@@ -1,9 +1,12 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 
+from datetime import datetime
+
 from extensions import db
 from models import Listing, Offer
 from services.offer_service import (
+    accept_offer,
     submit_offer,
     close_listing_auction,
     auto_close_if_expired,
@@ -13,8 +16,8 @@ from services.offer_service import (
 offers_bp = Blueprint("offers_bp", __name__, url_prefix="/api/listings")
 
 
-def _serialize_offer(offer):
-    return {
+def _serialize_offer(offer, include_buyer=False):
+    data = {
         "id": offer.id,
         "listing_id": offer.listing_id,
         "buyer_id": offer.buyer_id,
@@ -24,6 +27,9 @@ def _serialize_offer(offer):
         "is_winner": offer.is_winner,
         "created_at": offer.created_at.isoformat() if offer.created_at else None,
     }
+    if include_buyer:
+        data["buyer_name"] = offer.buyer.name if offer.buyer else None
+    return data
 
 
 @offers_bp.route("/<int:listing_id>/offers", methods=["POST"])
@@ -131,7 +137,7 @@ def list_offers(listing_id):
         "listing_id": listing.id,
         "status": listing.status,
         "winner_id": listing.winner_id,
-        "offers": [_serialize_offer(o) for o in offers],
+        "offers": [_serialize_offer(o, include_buyer=True) for o in offers],
     }), 200
 
 
@@ -221,3 +227,119 @@ def close_auction(listing_id):
         "winner_offer_id": winner.id if winner else None,
         "status": listing.status,
     }), 200
+
+
+@offers_bp.route("/<int:listing_id>/offers/<int:offer_id>/accept", methods=["POST"])
+@login_required
+def accept_offer_route(listing_id, offer_id):
+    """
+    Accept a specific offer and mark the listing as sold (owner only)
+    ---
+    tags:
+      - Offers
+    security:
+      - cookieAuth: []
+    parameters:
+      - name: listing_id
+        in: path
+        type: integer
+        required: true
+      - name: offer_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Offer accepted; listing marked sold
+      400:
+        description: Listing was closed without a sale
+      404:
+        description: Not found / not the owner
+    """
+    listing = db.session.query(Listing).get(listing_id)
+    if not listing or listing.user_id != current_user.id:
+        return jsonify({"error": "Listing not found"}), 404
+
+    offer = db.session.query(Offer).get(offer_id)
+    if not offer or offer.listing_id != listing.id:
+        return jsonify({"error": "Offer not found"}), 404
+
+    accepted, error = accept_offer(listing, offer)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({
+        "message": "Offer accepted",
+        "status": listing.status,
+        "winner_id": listing.winner_id,
+        "offer": _serialize_offer(accepted, include_buyer=True),
+    }), 200
+
+
+def _offer_result(offer, listing):
+    """How a buyer's latest offer is doing, in plain terms."""
+    if listing.status == "sold":
+        won = offer.is_winner or listing.winner_id == offer.buyer_id
+        return "won" if won else "not_selected"
+    if listing.status == "closed":
+        return "closed"
+    if listing.status == "awaiting_decision":
+        return "awaiting"
+    if listing.offer_ends_at and datetime.utcnow() > listing.offer_ends_at:
+        return "awaiting"
+
+    highest = get_highest_offer(listing.id)
+    if highest and highest.buyer_id != offer.buyer_id:
+        return "outbid"
+    return "leading"
+
+
+@offers_bp.route("/my-offers", methods=["GET"])
+@login_required
+def my_offers():
+    """
+    List the offers I have made, one per listing, newest first
+    ---
+    tags:
+      - Offers
+    security:
+      - cookieAuth: []
+    responses:
+      200:
+        description: My latest offer on each listing with its current result
+    """
+    mine = (
+        db.session.query(Offer)
+        .filter_by(buyer_id=current_user.id)
+        .order_by(Offer.created_at.desc(), Offer.id.desc())
+        .all()
+    )
+
+    seen = set()
+    items = []
+    for offer in mine:
+        if offer.listing_id in seen:
+            continue
+        seen.add(offer.listing_id)
+
+        listing = offer.listing
+        items.append({
+            "offer": _serialize_offer(offer),
+            "result": _offer_result(offer, listing),
+            "listing": {
+                "id": listing.id,
+                "title": listing.title,
+                "image_url": listing.image_url,
+                "price": float(listing.price),
+                "location": listing.location,
+                "status": listing.status,
+                "offer_ends_at": (
+                    listing.offer_ends_at.isoformat()
+                    if listing.offer_ends_at
+                    else None
+                ),
+                "seller_name": listing.seller.name if listing.seller else None,
+            },
+        })
+
+    return jsonify({"count": len(items), "offers": items}), 200

@@ -1,0 +1,361 @@
+.inquiries-panel,
+.offers-panel {
+  width: 100%;
+}
+
+.inquiry-form,
+.offer-form,
+.offers-panel,
+.inquiries-list,
+.inquiries-list-header,
+.offers-header,
+.current-offer,
+.inquiry-card,
+.offer-card,
+.inquiries-empty,
+.offers-empty,
+.inquiries-loading,
+.offers-loading,
+.inquiries-message,
+.offers-message {
+  box-sizing: border-box;
+}
+
+.inquiry-form,
+.offer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid rgba(40, 56, 69, 0.12);
+  border-radius: 12px;
+  background: #fffefa;
+}
+
+.inquiry-form h2,
+.inquiries-list-header h2,
+.offers-header h2,
+.inquiries-empty h3,
+.offers-empty h3 {
+  margin: 5px 0 10px;
+  color: var(--ink, #283845);
+  font-family: var(--serif, "DM Sans", sans-serif);
+}
+
+.inquiries-eyebrow,
+.offers-eyebrow {
+  color: #c47720;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.inquiry-form label,
+.offer-form label {
+  color: var(--ink, #283845);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.offer-form label span {
+  color: var(--muted, #71808a);
+  font-weight: 400;
+}
+
+.inquiry-form textarea,
+.offer-form textarea,
+.offer-form input {
+  width: 100%;
+  border: 1px solid rgba(40, 56, 69, 0.20);
+  border-radius: 8px;
+  background: #fdfcf7;
+  color: var(--ink, #283845);
+  font: inherit;
+  outline: none;
+}
+
+.inquiry-form textarea,
+.offer-form textarea {
+  min-height: 110px;
+  resize: vertical;
+  padding: 12px;
+}
+
+.offer-form input {
+  min-height: 46px;
+  padding: 10px 12px;
+}
+
+.inquiry-form textarea:focus,
+.offer-form textarea:focus,
+.offer-form input:focus {
+  border-color: #ffa649;
+  box-shadow: 0 0 0 3px rgba(255, 166, 73, 0.16);
+}
+
+.inquiries-primary-button,
+.offers-primary-button,
+.offers-close-button {
+  min-height: 42px;
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 40px;
+  background: var(--ink, #283845);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inquiries-primary-button:hover,
+.offers-primary-button:hover,
+.offers-close-button:hover {
+  background: #ffa649;
+  color: #283845;
+}
+
+.inquiries-primary-button:disabled,
+.offers-primary-button:disabled,
+.offers-close-button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.inquiries-message,
+.offers-message {
+  margin: 12px 0;
+  padding: 11px 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.inquiries-success,
+.offers-success {
+  border: 1px solid #c8dfcd;
+  background: #eff8f1;
+  color: #2f7041;
+}
+
+.inquiries-error,
+.offers-error {
+  border: 1px solid #edcaca;
+  background: #fff4f4;
+  color: #9b3838;
+}
+
+.inquiries-loading,
+.offers-loading {
+  min-height: 140px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--muted, #71808a);
+  font-size: 12px;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.inquiries-list-header,
+.offers-header {
+  margin: 18px 0 14px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.inquiries-count {
+  min-width: 32px;
+  height: 32px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #ffa649;
+  color: #283845;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.inquiries-list,
+.offers-list {
+  display: grid;
+  gap: 10px;
+}
+
+.inquiry-card,
+.offer-card {
+  padding: 16px;
+  border: 1px solid rgba(40, 56, 69, 0.12);
+  border-radius: 10px;
+  background: #fffefa;
+}
+
+.inquiry-card-meta,
+.offer-card > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: var(--muted, #71808a);
+  font-size: 10px;
+}
+
+.inquiry-card p,
+.offer-card p,
+.current-offer p {
+  margin: 10px 0 4px;
+  color: var(--ink, #283845);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.inquiry-listing-id {
+  color: #c47720;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.inquiries-empty,
+.offers-empty {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed rgba(40, 56, 69, 0.18);
+  border-radius: 12px;
+  text-align: center;
+  color: var(--muted, #71808a);
+}
+
+.inquiries-empty h3,
+.offers-empty h3 {
+  margin: 10px 0 4px;
+  font-size: 22px;
+}
+
+.inquiries-empty p,
+.offers-empty p {
+  max-width: 320px;
+  margin: 0;
+  font-size: 12px;
+}
+
+.inquiries-help {
+  margin: 12px 0 0;
+  color: var(--muted, #71808a);
+  font-size: 11px;
+}
+
+.offers-panel {
+  display: block;
+}
+
+.offers-status {
+  padding: 6px 10px;
+  border-radius: 30px;
+  background: #edf1eb;
+  color: #52636e;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.offers-status-sold,
+.offers-status-closed {
+  background: #283845;
+  color: #fff;
+}
+
+.offer-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 12px;
+}
+
+.offer-card > strong {
+  grid-row: 1;
+  grid-column: 2;
+  color: #c47720;
+  font-size: 16px;
+}
+
+.offer-card p,
+.offer-card .winner-badge {
+  grid-column: 1 / -1;
+}
+
+.winner-badge,
+.outbid-badge {
+  display: inline-flex;
+  width: fit-content;
+  padding: 5px 8px;
+  border-radius: 30px;
+  background: #283845;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.outbid-badge {
+  background: #fff1dc;
+  color: #a16314;
+}
+
+.offers-close-button {
+  width: 100%;
+  margin-top: 14px;
+}
+
+.current-offer {
+  margin-bottom: 12px;
+  padding: 16px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(255, 166, 73, 0.42);
+  border-radius: 10px;
+  background: #fffaf0;
+}
+
+.current-offer > span:first-child {
+  color: var(--muted, #71808a);
+  font-size: 10px;
+}
+
+.current-offer > strong {
+  color: #c47720;
+  font-size: 20px;
+}
+
+.offers-closed {
+  margin-top: 12px;
+}
+
+@media (max-width: 520px) {
+  .inquiry-form,
+  .offer-form {
+    padding: 16px;
+  }
+
+  .offer-card {
+    grid-template-columns: 1fr;
+  }
+
+  .offer-card > strong {
+    grid-row: auto;
+    grid-column: 1;
+  }
+}
