@@ -297,3 +297,151 @@ def test_owner_offer_list_includes_buyer_name(seller_client, buyer, seller, list
     assert response.status_code == 200
     names = {o["buyer_name"] for o in response.get_json()["offers"]}
     assert names == {"Test Buyer", "Other Buyer"}
+
+
+# SELLER DECIDES AFTER THE DEADLINE
+
+def test_expired_listing_with_offers_waits_for_seller(seller_client, buyer, seller, expired_listing):
+    offer = Offer(listing_id=expired_listing.id, buyer_id=buyer.id, amount=30, is_active=True)
+    db.session.add(offer)
+    db.session.commit()
+
+    response = seller_client.get(f"/api/listings/{expired_listing.id}/offers")
+
+    assert response.get_json()["status"] == "awaiting_decision"
+    assert response.get_json()["winner_id"] is None
+
+
+def test_seller_can_accept_after_deadline(seller_client, buyer, seller, expired_listing):
+    offer = Offer(listing_id=expired_listing.id, buyer_id=buyer.id, amount=30, is_active=True)
+    db.session.add(offer)
+    db.session.commit()
+    seller_client.get(f"/api/listings/{expired_listing.id}/offers")
+
+    response = seller_client.post(
+        f"/api/listings/{expired_listing.id}/offers/{offer.id}/accept"
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "sold"
+
+
+def test_buyer_cannot_offer_while_awaiting_decision(buyer_client, seller_client, buyer, expired_listing):
+    db.session.add(Offer(listing_id=expired_listing.id, buyer_id=buyer.id, amount=30, is_active=True))
+    db.session.commit()
+    seller_client.get(f"/api/listings/{expired_listing.id}/offers")
+
+    response = buyer_client.post(
+        f"/api/listings/{expired_listing.id}/offers", json={"amount": 99}
+    )
+    assert response.status_code == 400
+
+
+def test_extending_deadline_reopens_awaiting_listing(seller_client, buyer, expired_listing):
+    db.session.add(Offer(listing_id=expired_listing.id, buyer_id=buyer.id, amount=30, is_active=True))
+    db.session.commit()
+    seller_client.get(f"/api/listings/{expired_listing.id}/offers")
+
+    future = (datetime.utcnow() + timedelta(days=2)).isoformat()
+    response = seller_client.patch(
+        f"/api/listings/{expired_listing.id}", json={"offer_ends_at": future}
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "open_for_offers"
+
+
+# MARK SOLD WITH A CHOSEN OFFER
+
+def test_mark_sold_with_chosen_offer(seller_client, buyer, seller, listing):
+    low, high = _make_offers(listing, buyer, seller)
+
+    response = seller_client.patch(
+        f"/api/listings/{listing.id}/sold", json={"offer_id": low.id}
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "sold"
+    db.session.expire_all()
+    assert db.session.get(Offer, low.id).is_winner is True
+
+
+def test_mark_sold_without_offer_still_works(seller_client, listing):
+    response = seller_client.patch(f"/api/listings/{listing.id}/sold")
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "sold"
+
+
+def test_mark_sold_with_foreign_offer_is_404(seller_client, buyer, seller, listing):
+    low, _ = _make_offers(listing, buyer, seller)
+    other = Listing(title="Other", description="x", price=10, category="Home",
+                    status="active", user_id=seller.id)
+    db.session.add(other)
+    db.session.commit()
+
+    response = seller_client.patch(
+        f"/api/listings/{other.id}/sold", json={"offer_id": low.id}
+    )
+    assert response.status_code == 404
+
+
+# MY OFFERS (BUYER VIEW)
+
+def test_my_offers_lists_latest_offer_per_listing(buyer_client, buyer, seller, listing):
+    low, high = _make_offers(listing, buyer, seller)
+
+    response = buyer_client.get("/api/listings/my-offers")
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["count"] == 1
+    item = body["offers"][0]
+    assert item["listing"]["title"] == listing.title
+    assert item["listing"]["seller_name"] == "Test Seller"
+    assert item["result"] == "outbid"          # Other Buyer offered 90 vs 40
+
+
+def test_my_offers_reports_not_selected_when_seller_picks_another(buyer_client, buyer, seller, listing):
+    from services.offer_service import accept_offer
+
+    low, high = _make_offers(listing, buyer, seller)
+    accept_offer(listing, high)
+
+    response = buyer_client.get("/api/listings/my-offers")
+
+    assert response.get_json()["offers"][0]["result"] == "not_selected"
+
+
+def test_my_offers_requires_login(client):
+    assert client.get("/api/listings/my-offers").status_code == 401
+
+
+# STATUS STAYS HONEST WHEN THE DEADLINE PASSES
+
+def test_listing_moves_to_awaiting_decision_when_viewed_after_deadline(
+    client, buyer, listing
+):
+    from datetime import datetime, timedelta
+
+    db.session.add(Offer(listing_id=listing.id, buyer_id=buyer.id, amount=50, is_active=True))
+    listing.status = "open_for_offers"
+    listing.offer_ends_at = datetime.utcnow() - timedelta(minutes=1)
+    db.session.commit()
+
+    response = client.get(f"/api/listings/{listing.id}")
+
+    assert response.status_code == 200
+    assert response.get_json()["status"] == "awaiting_decision"
+    assert response.get_json().get("winner_id") is None
+
+
+def test_expired_listing_without_offers_is_closed_when_viewed(client, listing):
+    from datetime import datetime, timedelta
+
+    listing.status = "active"
+    listing.offer_ends_at = datetime.utcnow() - timedelta(minutes=1)
+    db.session.commit()
+
+    response = client.get(f"/api/listings/{listing.id}")
+
+    assert response.get_json()["status"] == "closed"

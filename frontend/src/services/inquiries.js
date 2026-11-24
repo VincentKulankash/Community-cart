@@ -1,4 +1,3 @@
-
 /*
  * DEVELOPER: Mumo
  * RESPONSIBILITY: Inquiries feature integration.
@@ -43,6 +42,19 @@ export function sendInquiry(listingId, message) {
 export function getListingInquiries(listingId) {
   return get(
     `${LISTINGS_ENDPOINT}/${encodeURIComponent(listingId)}/inquiries`
+  );
+}
+
+// Retrieve inquiries buyers have sent about your listings.
+export function getReceivedInquiries() {
+  return get(`${INQUIRIES_ENDPOINT}/received`);
+}
+
+// Reply to an inquiry about your listing (seller only).
+export function replyToInquiry(inquiryId, message) {
+  return post(
+    `${INQUIRIES_ENDPOINT}/${encodeURIComponent(inquiryId)}/reply`,
+    { message }
   );
 }
 

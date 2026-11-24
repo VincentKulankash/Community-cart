@@ -1,17 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  CalendarClock,
   CheckCircle2,
   Crown,
-  Gavel,
   HandCoins,
   LoaderCircle,
 } from "lucide-react";
 
-import {
-  acceptOffer,
-  closeListingAuction,
-  getListingOffers,
-} from "../services/offers";
+import { markListingAsSold } from "../services/listings";
+import { getListingOffers } from "../services/offers";
 import { parseServerDate } from "../utils/dates";
 import "../styles/offer-manager.css";
 
@@ -71,7 +68,7 @@ function currentOfferPerBuyer(offers) {
  * Seller view of the offers on one listing: see every buyer's offer and
  * choose which one to proceed with.
  */
-function OfferManager({ listing, onStatusChange, onNotify }) {
+function OfferManager({ listing, onStatusChange, onNotify, onNavigate }) {
   const [offers, setOffers] = useState([]);
   const [status, setStatus] = useState(listing.status);
   const [loading, setLoading] = useState(true);
@@ -129,11 +126,13 @@ function OfferManager({ listing, onStatusChange, onNotify }) {
       setBusy(true);
 
       if (pending.type === "accept") {
-        await acceptOffer(listingId, pending.offer.id);
-        onNotify?.(`Accepted ${formatPrice(pending.offer.amount)} from ${pending.offer.buyer_name || "the buyer"}`);
+        // The seller's pick, not necessarily the highest offer.
+        await markListingAsSold(listingId, pending.offer.id);
+        onNotify?.(`Sold to ${pending.offer.buyer_name || "the buyer"} for ${formatPrice(pending.offer.amount)}`);
       } else {
-        await closeListingAuction(listingId);
-        onNotify?.("Bidding closed");
+        // Sold outside the app: no buyer from the offers list.
+        await markListingAsSold(listingId);
+        onNotify?.("Listing marked as sold");
       }
 
       await load();
@@ -146,7 +145,9 @@ function OfferManager({ listing, onStatusChange, onNotify }) {
   }
 
   const isOpen = status === "active" || status === "open_for_offers";
+  const isAwaiting = status === "awaiting_decision";
   const isSold = status === "sold";
+  const canDecide = isOpen || isAwaiting;
   const highestId = offers[0]?.id;
 
   return (
@@ -174,8 +175,20 @@ function OfferManager({ listing, onStatusChange, onNotify }) {
             {offers.length} {offers.length === 1 ? "buyer has" : "buyers have"} made an
             offer. {isSold
               ? "You have chosen an offer. You can still switch to a different one."
-              : "Choose the one you want to proceed with."}
+              : isAwaiting
+              ? "The deadline has passed. Choose the offer you want. It does not have to be the highest."
+              : "Choose any offer you like, or wait for more. It does not have to be the highest."}
           </p>
+
+          {isAwaiting && (
+            <button
+              type="button"
+              className="om-secondary"
+              onClick={() => onNavigate?.(`/listings/${listingId}/edit`)}
+            >
+              <CalendarClock size={15} aria-hidden="true" /> Extend the deadline instead
+            </button>
+          )}
 
           <ul className="om-list">
             {offers.map((offer) => (
@@ -219,16 +232,17 @@ function OfferManager({ listing, onStatusChange, onNotify }) {
             ))}
           </ul>
 
-          {isOpen && (
-            <button
-              type="button"
-              className="om-close-bidding"
-              onClick={() => setPending({ type: "close" })}
-            >
-              <Gavel size={15} aria-hidden="true" /> End bidding, highest offer wins
-            </button>
-          )}
         </>
+      )}
+
+      {!loading && !error && canDecide && (
+        <button
+          type="button"
+          className="om-close-bidding"
+          onClick={() => setPending({ type: "elsewhere" })}
+        >
+          <CheckCircle2 size={15} aria-hidden="true" /> It sold outside the app
+        </button>
       )}
 
       {pending && (
@@ -245,16 +259,14 @@ function OfferManager({ listing, onStatusChange, onNotify }) {
             onClick={(event) => event.stopPropagation()}
           >
             <h2 id="om-dialog-title">
-              {pending.type === "accept" ? "Accept this offer?" : "End bidding now?"}
+              {pending.type === "accept" ? "Sell to this buyer?" : "Mark as sold?"}
             </h2>
             <p id="om-dialog-desc">
               {pending.type === "accept"
                 ? `${pending.offer.buyer_name || "This buyer"} offered ${formatPrice(
                     pending.offer.amount
                   )}. The listing will be marked as sold to them and other buyers can no longer make offers.`
-                : `No more offers will be accepted and the highest offer${
-                    offers[0] ? ` (${formatPrice(offers[0].amount)})` : ""
-                  } will be chosen. You can still switch to a different offer afterwards.`}
+                : "The listing will be marked as sold without choosing a buyer from the offers. Other buyers can no longer make offers."}
             </p>
             <div className="modal-actions">
               <button
@@ -275,7 +287,7 @@ function OfferManager({ listing, onStatusChange, onNotify }) {
                   ? "Working..."
                   : pending.type === "accept"
                   ? "Accept offer"
-                  : "End bidding"}
+                  : "Mark as sold"}
               </button>
             </div>
           </div>

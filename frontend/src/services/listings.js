@@ -1,4 +1,3 @@
-
 /*
  * DEVELOPER: Vincent (shared API integration)
  * RESPONSIBILITY: Marketplace listings API service.
@@ -72,9 +71,11 @@ export function deleteListing(id) {
   );
 }
 
-// Mark a listing as sold.
-export function markListingAsSold(id) {
+// Mark a listing as sold. Pass an offer id to sell to that offer's buyer
+// (the seller's choice); omit it when the item sold outside the app.
+export function markListingAsSold(id, offerId) {
   return patch(
-    `${LISTINGS_ENDPOINT}/${encodeURIComponent(id)}/sold`
+    `${LISTINGS_ENDPOINT}/${encodeURIComponent(id)}/sold`,
+    offerId ? { offer_id: offerId } : undefined
   );
 }

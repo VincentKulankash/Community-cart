@@ -1,4 +1,3 @@
-
 def test_send_inquiry_requires_login(client, listing):
     response = client.post(
         f"/api/listings/{listing.id}/inquiries",
@@ -106,3 +105,84 @@ def test_buyer_cannot_view_seller_inquiries(buyer_client, listing):
     )
 
     assert response.status_code == 403
+
+
+# REPLIES AND THE RECEIVED BOX
+#
+# The test app keeps one app context open, so Flask-Login caches the current
+# user across test clients. Each test therefore drives ONE logged-in client
+# and sets up the other party's data directly in the database.
+
+from datetime import datetime
+
+from extensions import db
+from models import Inquiry
+
+
+def _make_inquiry(listing, buyer, message="Still available?", reply=None):
+    inquiry = Inquiry(listing_id=listing.id, buyer_id=buyer.id, message=message)
+    if reply:
+        inquiry.reply = reply
+        inquiry.replied_at = datetime.utcnow()
+    db.session.add(inquiry)
+    db.session.commit()
+    return inquiry
+
+
+def test_seller_can_reply_to_inquiry(seller_client, buyer, listing):
+    inquiry = _make_inquiry(listing, buyer)
+
+    response = seller_client.post(
+        f"/api/inquiries/{inquiry.id}/reply", json={"message": "Yes it is!"}
+    )
+
+    assert response.status_code == 200
+    assert response.get_json()["inquiry"]["reply"] == "Yes it is!"
+    db.session.expire_all()
+    saved = db.session.get(Inquiry, inquiry.id)
+    assert saved.reply == "Yes it is!"
+    assert saved.replied_at is not None
+
+
+def test_buyer_sees_reply_and_listing_details(buyer_client, buyer, listing):
+    _make_inquiry(listing, buyer, reply="Yes it is!")
+
+    mine = buyer_client.get("/api/inquiries/sent").get_json()["inquiries"][0]
+
+    assert mine["reply"] == "Yes it is!"
+    assert mine["replied_at"] is not None
+    assert mine["listing"]["title"] == listing.title
+    assert mine["listing"]["seller_name"] == "Test Seller"
+
+
+def test_only_the_seller_can_reply(buyer_client, buyer, listing):
+    inquiry = _make_inquiry(listing, buyer)
+
+    response = buyer_client.post(
+        f"/api/inquiries/{inquiry.id}/reply", json={"message": "I reply to myself"}
+    )
+    assert response.status_code == 404
+
+
+def test_reply_requires_message(seller_client, buyer, listing):
+    inquiry = _make_inquiry(listing, buyer)
+
+    response = seller_client.post(
+        f"/api/inquiries/{inquiry.id}/reply", json={"message": "   "}
+    )
+    assert response.status_code == 400
+
+
+def test_received_inquiries_for_seller(seller_client, buyer, listing):
+    _make_inquiry(listing, buyer)
+
+    body = seller_client.get("/api/inquiries/received").get_json()
+
+    assert body["count"] == 1
+    assert body["unanswered"] == 1
+    assert body["inquiries"][0]["buyer_name"] == "Test Buyer"
+
+
+def test_received_inquiries_empty_for_buyer(buyer_client, buyer, listing):
+    _make_inquiry(listing, buyer)
+    assert buyer_client.get("/api/inquiries/received").get_json()["count"] == 0

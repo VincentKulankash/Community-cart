@@ -1,4 +1,5 @@
 import { Heart, ImageOff, MapPin } from "lucide-react";
+import { parseServerDate, timeAgo } from "../utils/dates";
 
 function formatPrice(price) {
   return new Intl.NumberFormat("en-KE", {
@@ -84,6 +85,14 @@ function ListingCard({
           <MapPin size={13} aria-hidden="true" />
           {listing.location || "Location not specified"}
         </div>
+
+        {(listing.seller_name || listing.created_at) && (
+          <div className="listing-seller">
+            {[listing.seller_name, timeAgo(parseServerDate(listing.created_at))]
+              .filter(Boolean)
+              .join(" · ")}
+          </div>
+        )}
       </div>
     </article>
   );

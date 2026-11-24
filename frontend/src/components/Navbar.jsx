@@ -32,8 +32,12 @@ function Navbar({
   const isBrowse =
     currentPath === "/listings" || /^\/listings\/\d+/.test(currentPath);
   const isSaved = currentPath === "/favorites";
-  const isMine =
+  const isListings =
     currentPath === "/my-listings" || currentPath === "/create-listing";
+  const isOffers = currentPath === "/my-offers";
+  const isMessages = currentPath === "/messages";
+  // Any of the "your account" pages highlights the Mine tab on phones.
+  const isMine = isListings || isOffers || isMessages;
   const isHome = currentPath === "/";
 
   function go(event, path) {
@@ -78,14 +82,34 @@ function Navbar({
             </a>
 
             {currentUser && (
-              <a
-                className={isMine ? "nav-link active" : "nav-link"}
-                href="/my-listings"
-                aria-current={isMine ? "page" : undefined}
-                onClick={(event) => go(event, "/my-listings")}
-              >
-                My listings
-              </a>
+              <>
+                <a
+                  className={isListings ? "nav-link active" : "nav-link"}
+                  href="/my-listings"
+                  aria-current={isListings ? "page" : undefined}
+                  onClick={(event) => go(event, "/my-listings")}
+                >
+                  My listings
+                </a>
+
+                <a
+                  className={isOffers ? "nav-link active" : "nav-link"}
+                  href="/my-offers"
+                  aria-current={isOffers ? "page" : undefined}
+                  onClick={(event) => go(event, "/my-offers")}
+                >
+                  My offers
+                </a>
+
+                <a
+                  className={isMessages ? "nav-link active" : "nav-link"}
+                  href="/messages"
+                  aria-current={isMessages ? "page" : undefined}
+                  onClick={(event) => go(event, "/messages")}
+                >
+                  Messages
+                </a>
+              </>
             )}
           </nav>
 

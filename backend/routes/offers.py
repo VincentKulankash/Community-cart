@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 
+from datetime import datetime
+
 from extensions import db
 from models import Listing, Offer
 from services.offer_service import (
@@ -272,3 +274,72 @@ def accept_offer_route(listing_id, offer_id):
         "winner_id": listing.winner_id,
         "offer": _serialize_offer(accepted, include_buyer=True),
     }), 200
+
+
+def _offer_result(offer, listing):
+    """How a buyer's latest offer is doing, in plain terms."""
+    if listing.status == "sold":
+        won = offer.is_winner or listing.winner_id == offer.buyer_id
+        return "won" if won else "not_selected"
+    if listing.status == "closed":
+        return "closed"
+    if listing.status == "awaiting_decision":
+        return "awaiting"
+    if listing.offer_ends_at and datetime.utcnow() > listing.offer_ends_at:
+        return "awaiting"
+
+    highest = get_highest_offer(listing.id)
+    if highest and highest.buyer_id != offer.buyer_id:
+        return "outbid"
+    return "leading"
+
+
+@offers_bp.route("/my-offers", methods=["GET"])
+@login_required
+def my_offers():
+    """
+    List the offers I have made, one per listing, newest first
+    ---
+    tags:
+      - Offers
+    security:
+      - cookieAuth: []
+    responses:
+      200:
+        description: My latest offer on each listing with its current result
+    """
+    mine = (
+        db.session.query(Offer)
+        .filter_by(buyer_id=current_user.id)
+        .order_by(Offer.created_at.desc(), Offer.id.desc())
+        .all()
+    )
+
+    seen = set()
+    items = []
+    for offer in mine:
+        if offer.listing_id in seen:
+            continue
+        seen.add(offer.listing_id)
+
+        listing = offer.listing
+        items.append({
+            "offer": _serialize_offer(offer),
+            "result": _offer_result(offer, listing),
+            "listing": {
+                "id": listing.id,
+                "title": listing.title,
+                "image_url": listing.image_url,
+                "price": float(listing.price),
+                "location": listing.location,
+                "status": listing.status,
+                "offer_ends_at": (
+                    listing.offer_ends_at.isoformat()
+                    if listing.offer_ends_at
+                    else None
+                ),
+                "seller_name": listing.seller.name if listing.seller else None,
+            },
+        })
+
+    return jsonify({"count": len(items), "offers": items}), 200

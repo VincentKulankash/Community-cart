@@ -1,11 +1,11 @@
-
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_login import login_required, current_user
 
 from extensions import db
-from models import Listing
+from models import Listing, Offer
+from services.offer_service import accept_offer, auto_close_if_expired
 from services.listing_service import (
     filter_listings,
     get_owned_listing,
@@ -33,6 +33,10 @@ def to_dict(listing):
             else None
         ),
         "user_id": listing.user_id,
+        "seller_name": listing.seller.name if listing.seller else None,
+        "created_at": (
+            listing.created_at.isoformat() if listing.created_at else None
+        ),
     }
 
 
@@ -102,6 +106,11 @@ def get_my_listings():
         .all()
     )
 
+    # Keep statuses honest: a passed deadline becomes "awaiting_decision"
+    # (or "closed" with no offers) the moment the seller looks.
+    for listing in listings:
+        auto_close_if_expired(listing)
+
     return jsonify([to_dict(listing) for listing in listings]), 200
 
 
@@ -127,6 +136,8 @@ def get_listing(id):
 
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
+
+    auto_close_if_expired(listing)
 
     return jsonify(to_dict(listing))
 
@@ -314,6 +325,14 @@ def update_listing(id):
                     "error": "Invalid offer deadline format"
                 }), 422
 
+        # Extending the deadline reopens a listing that was waiting for the
+        # seller's decision.
+        if listing.status == "awaiting_decision" and (
+            listing.offer_ends_at is None
+            or listing.offer_ends_at > datetime.utcnow()
+        ):
+            listing.status = "open_for_offers"
+
     db.session.commit()
 
     return jsonify(to_dict(listing)), 200
@@ -356,6 +375,10 @@ def delete_listing(id):
 def mark_sold(id):
     """
     Mark a listing as sold (owner only)
+
+    Optionally pass `offer_id` to sell to the buyer of a specific offer
+    (the seller's choice, not necessarily the highest). Without it the
+    listing is simply marked sold, e.g. when it sold outside the app.
     ---
     tags:
       - Listings
@@ -366,17 +389,38 @@ def mark_sold(id):
         in: path
         type: integer
         required: true
+      - in: body
+        name: body
+        required: false
+        schema:
+          type: object
+          properties:
+            offer_id:
+              type: integer
+              description: The offer to accept
     responses:
       200:
         description: Listing marked sold
       404:
-        description: Not found / not owned
+        description: Not found / not owned / offer not found
     """
     listing = get_owned_listing(id, current_user)
 
     if not listing:
         return jsonify({"error": "Listing not found"}), 404
 
-    mark_listing_sold(listing)
+    data = request.get_json(silent=True) or {}
+    offer_id = data.get("offer_id")
+
+    if offer_id is not None:
+        offer = db.session.get(Offer, offer_id) if isinstance(offer_id, int) else None
+        if not offer or offer.listing_id != listing.id:
+            return jsonify({"error": "Offer not found"}), 404
+
+        _, error = accept_offer(listing, offer)
+        if error:
+            return jsonify({"error": error}), 400
+    else:
+        mark_listing_sold(listing)
 
     return jsonify(to_dict(listing)), 200

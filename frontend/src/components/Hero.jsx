@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   HandCoins,
-  ImageOff,
   MapPin,
   Plus,
   Tag,
@@ -13,22 +12,11 @@ import "../styles/hero-atom.css";
  * DEVELOPER: Olentiki
  * RESPONSIBILITY: Homepage hero section.
  *
- * The floating atom is the hero's signature visual (pure CSS, see
- * styles/hero-atom.css). The two cards orbiting it show real listings
- * passed in from Home, so the hero always reflects the marketplace.
+ * The floating atom is the hero's signature visual. It is pure CSS
+ * (see styles/hero-atom.css) and deliberately shows no marketplace data.
  */
 
-function formatPrice(price) {
-  return new Intl.NumberFormat("en-KE", {
-    style: "currency",
-    currency: "KES",
-    maximumFractionDigits: 0,
-  }).format(Number(price) || 0);
-}
-
-function Hero({ onShowAllFinds, onCreateListing, featured = [] }) {
-  const cards = featured.slice(0, 2);
-
+function Hero({ onShowAllFinds, onCreateListing }) {
   return (
     <section className="hero" aria-labelledby="hero-title">
       <div className="hero-inner">
@@ -101,24 +89,6 @@ function Hero({ onShowAllFinds, onCreateListing, featured = [] }) {
 
             <div className="atom-pulse" />
 
-            {cards.map((listing, index) => (
-              <div
-                className={`atom-card atom-card-${index + 1}`}
-                key={listing.id}
-              >
-                <span className="atom-card-thumb">
-                  {listing.image_url ? (
-                    <img src={listing.image_url} alt="" loading="lazy" />
-                  ) : (
-                    <ImageOff size={16} />
-                  )}
-                </span>
-                <span className="atom-card-text">
-                  <span>{listing.title}</span>
-                  <strong>{formatPrice(listing.price)}</strong>
-                </span>
-              </div>
-            ))}
           </div>
         </div>
       </div>

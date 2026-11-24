@@ -178,6 +178,10 @@ class Inquiry(db.Model):
 
     message = db.Column(db.Text, nullable=False)
 
+    # The seller's answer (one reply per inquiry).
+    reply = db.Column(db.Text, nullable=True)
+    replied_at = db.Column(db.DateTime, nullable=True)
+
     created_at = db.Column(
         db.DateTime,
         default=datetime.utcnow,
