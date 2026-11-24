@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from extensions import db
 from models import Listing, Offer
 from services.offer_service import (
+    accept_offer,
     submit_offer,
     close_listing_auction,
     auto_close_if_expired,
@@ -13,8 +14,8 @@ from services.offer_service import (
 offers_bp = Blueprint("offers_bp", __name__, url_prefix="/api/listings")
 
 
-def _serialize_offer(offer):
-    return {
+def _serialize_offer(offer, include_buyer=False):
+    data = {
         "id": offer.id,
         "listing_id": offer.listing_id,
         "buyer_id": offer.buyer_id,
@@ -24,6 +25,9 @@ def _serialize_offer(offer):
         "is_winner": offer.is_winner,
         "created_at": offer.created_at.isoformat() if offer.created_at else None,
     }
+    if include_buyer:
+        data["buyer_name"] = offer.buyer.name if offer.buyer else None
+    return data
 
 
 @offers_bp.route("/<int:listing_id>/offers", methods=["POST"])
@@ -131,7 +135,7 @@ def list_offers(listing_id):
         "listing_id": listing.id,
         "status": listing.status,
         "winner_id": listing.winner_id,
-        "offers": [_serialize_offer(o) for o in offers],
+        "offers": [_serialize_offer(o, include_buyer=True) for o in offers],
     }), 200
 
 
@@ -220,4 +224,51 @@ def close_auction(listing_id):
         "winner_id": listing.winner_id,
         "winner_offer_id": winner.id if winner else None,
         "status": listing.status,
+    }), 200
+
+
+@offers_bp.route("/<int:listing_id>/offers/<int:offer_id>/accept", methods=["POST"])
+@login_required
+def accept_offer_route(listing_id, offer_id):
+    """
+    Accept a specific offer and mark the listing as sold (owner only)
+    ---
+    tags:
+      - Offers
+    security:
+      - cookieAuth: []
+    parameters:
+      - name: listing_id
+        in: path
+        type: integer
+        required: true
+      - name: offer_id
+        in: path
+        type: integer
+        required: true
+    responses:
+      200:
+        description: Offer accepted; listing marked sold
+      400:
+        description: Listing was closed without a sale
+      404:
+        description: Not found / not the owner
+    """
+    listing = db.session.query(Listing).get(listing_id)
+    if not listing or listing.user_id != current_user.id:
+        return jsonify({"error": "Listing not found"}), 404
+
+    offer = db.session.query(Offer).get(offer_id)
+    if not offer or offer.listing_id != listing.id:
+        return jsonify({"error": "Offer not found"}), 404
+
+    accepted, error = accept_offer(listing, offer)
+    if error:
+        return jsonify({"error": error}), 400
+
+    return jsonify({
+        "message": "Offer accepted",
+        "status": listing.status,
+        "winner_id": listing.winner_id,
+        "offer": _serialize_offer(accepted, include_buyer=True),
     }), 200

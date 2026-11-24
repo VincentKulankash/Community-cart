@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ImagePlus, Loader2, RefreshCw, Save, X } from "lucide-react";
+import { ImagePlus, Loader2, RefreshCw, Save, X } from "lucide-react";
 import { getListingById, updateListing } from "../services/listings";
+import BackButton from "../components/BackButton";
+import DeadlineField from "../components/DeadlineField";
+import {
+  localInputToServerUtc,
+  parseServerDate,
+  toLocalInputValue,
+} from "../utils/dates";
 import "../styles/listing-forms.css";
 
 const CATEGORIES = ["Electronics", "Furniture", "Clothing", "Sports", "Books", "Home", "Other"];
@@ -61,7 +68,7 @@ function isHttpUrl(value) {
   }
 }
 
-function validateListingForm(form) {
+function validateListingForm(form, initialDeadline = "") {
   const errors = {};
   const title = form.title.trim();
 
@@ -81,11 +88,22 @@ function validateListingForm(form) {
     errors.price = "Enter a price greater than 0.";
   }
 
+  // Only complain about a past deadline if the seller changed it, so an
+  // old deadline never blocks saving unrelated edits.
+  if (form.offer_ends_at && form.offer_ends_at !== initialDeadline) {
+    const deadline = new Date(form.offer_ends_at);
+    if (Number.isNaN(deadline.getTime()) || deadline.getTime() <= Date.now()) {
+      errors.offer_ends_at = "Choose a time in the future.";
+    }
+  }
+
   return errors;
 }
 
-function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
+function EditListing({ listingId, currentUser, onNavigate, onNotify, onBack }) {
   const [formData, setFormData] = useState(null);
+  const [listingStatus, setListingStatus] = useState("");
+  const initialDeadlineRef = useRef("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -120,6 +138,10 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
         }
 
         if (mounted) {
+          initialDeadlineRef.current = toLocalInputValue(
+            parseServerDate(listing.offer_ends_at)
+          );
+          setListingStatus(listing.status || "");
           setFormData({
             title: listing.title || "",
             description: listing.description || "",
@@ -131,6 +153,7 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
             condition: listing.condition || "",
             location: listing.location || "",
             image_url: listing.image_url || "",
+            offer_ends_at: initialDeadlineRef.current,
           });
         }
       } catch (err) {
@@ -209,7 +232,7 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
     setError("");
     setSuccess("");
 
-    const nextErrors = validateListingForm(formData);
+    const nextErrors = validateListingForm(formData, initialDeadlineRef.current);
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
@@ -223,6 +246,7 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
         condition: formData.condition,
         location: formData.location.trim(),
         image_url: formData.image_url.trim(),
+        offer_ends_at: localInputToServerUtc(formData.offer_ends_at),
       });
       setSuccess("Your listing has been updated.");
       onNotify?.("Your listing has been updated");
@@ -245,13 +269,7 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
   if (!formData) {
     return (
       <main className="listing-form-page">
-        <button
-          type="button"
-          className="listing-form-back"
-          onClick={() => onNavigate("/my-listings")}
-        >
-          <ArrowLeft size={16} /> Back to my listings
-        </button>
+        <BackButton onBack={onBack} fallback="/my-listings" className="listing-form-back" />
         <p className="listing-form-alert listing-form-error" role="alert">
           {error || "Unable to load this listing."}
         </p>
@@ -263,13 +281,7 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
 
   return (
     <main className="listing-form-page">
-      <button
-        type="button"
-        className="listing-form-back"
-        onClick={() => onNavigate("/my-listings")}
-      >
-        <ArrowLeft size={16} /> Back to my listings
-      </button>
+      <BackButton onBack={onBack} fallback="/my-listings" className="listing-form-back" />
 
       <section className="listing-form-card">
         <div className="listing-form-heading">
@@ -463,6 +475,28 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify }) {
                 onChange={handleChange}
               />
             </div>
+
+            <DeadlineField
+              id="edit-offer-ends-at"
+              value={formData.offer_ends_at}
+              error={fieldErrors.offer_ends_at}
+              onChange={(value) => {
+                setFormData((previous) => ({ ...previous, offer_ends_at: value }));
+                setFieldErrors((previous) => {
+                  if (!previous.offer_ends_at) return previous;
+                  const next = { ...previous };
+                  delete next.offer_ends_at;
+                  return next;
+                });
+              }}
+            />
+
+            {(listingStatus === "sold" || listingStatus === "closed") && (
+              <p className="listing-form-hint listing-form-full">
+                This listing is already {listingStatus}, so changing the
+                deadline will not reopen it for offers.
+              </p>
+            )}
           </div>
 
           <button type="submit" className="listing-form-submit" disabled={saving || uploading}>

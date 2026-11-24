@@ -163,6 +163,30 @@ def close_listing_auction(listing):
     return winning, True
 
 
+# ---------- ACCEPT A SPECIFIC OFFER ----------
+def accept_offer(listing, offer):
+    """
+    Let the seller pick a specific offer as the winner (not just the highest).
+    Marks the listing as sold. Safe to call again to change the choice.
+    Returns (offer, error_message).
+    """
+    if offer.listing_id != listing.id:
+        return None, "Offer not found"
+    if listing.status == "closed":
+        return None, "This listing was closed without a sale"
+
+    for other in db.session.query(Offer).filter_by(listing_id=listing.id).all():
+        other.is_winner = False
+
+    offer.is_winner = True
+    offer.is_active = False
+    listing.winner_id = offer.buyer_id
+    listing.status = "sold"
+
+    db.session.commit()
+    return offer, None
+
+
 # ---------- AUTO-CLOSE ON READ ----------
 def auto_close_if_expired(listing):
     """If deadline has passed and status is still open, close it."""

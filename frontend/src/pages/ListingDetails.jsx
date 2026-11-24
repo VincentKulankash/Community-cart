@@ -1,7 +1,7 @@
-
 import { useEffect, useState } from "react";
 import {
-  ArrowLeft,
+  CheckCircle2,
+  Edit3,
   MapPin,
   Tag,
   Clock3,
@@ -13,6 +13,9 @@ import {
 import { getListingById } from "../services/listings";
 import { sendInquiry } from "../services/inquiries";
 import { getMyOffer, submitOffer } from "../services/offers";
+import BackButton from "../components/BackButton";
+import OfferManager from "../components/OfferManager";
+import { formatDeadline, parseServerDate } from "../utils/dates";
 
 function formatPrice(price) {
   return new Intl.NumberFormat("en-KE", {
@@ -22,11 +25,28 @@ function formatPrice(price) {
   }).format(Number(price) || 0);
 }
 
+const STATUS_LABELS = {
+  active: "Open for offers",
+  open_for_offers: "Open for offers",
+  sold: "Sold",
+  closed: "Closed",
+  pending: "Pending",
+};
+
+function statusLabel(status) {
+  if (!status) return "";
+  return (
+    STATUS_LABELS[status] ||
+    status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ")
+  );
+}
+
 function ListingDetails({
   listingId,
   currentUser,
   onNavigate,
   onNotify,
+  onBack,
 }) {
   const [listing, setListing] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -189,14 +209,7 @@ function ListingDetails({
   if (error || !listing) {
     return (
       <main className="listing-detail-page">
-        <button
-          type="button"
-          className="marketplace-back"
-          onClick={() => onNavigate("/listings")}
-        >
-          <ArrowLeft size={16} />
-          Back to marketplace
-        </button>
+        <BackButton onBack={onBack} fallback="/listings" className="marketplace-back" />
 
         <p className="finds-message finds-error" role="alert">
           {error || "This listing could not be found."}
@@ -205,18 +218,17 @@ function ListingDetails({
     );
   }
 
-  const canMakeOffer = listing.status === "active" && !isOwner;
+  // "active" = no offers yet, "open_for_offers" = at least one offer received.
+  const isOpen =
+    listing.status === "active" || listing.status === "open_for_offers";
+  const canMakeOffer = isOpen && !isOwner;
+
+  const deadline = parseServerDate(listing.offer_ends_at);
+  const offersClosed = Boolean(deadline && deadline.getTime() < Date.now());
 
   return (
     <main className="listing-detail-page">
-      <button
-        type="button"
-        className="marketplace-back"
-        onClick={() => onNavigate("/listings")}
-      >
-        <ArrowLeft size={16} />
-        Back to marketplace
-      </button>
+      <BackButton onBack={onBack} fallback="/listings" className="marketplace-back" />
 
       <div className="listing-detail-layout">
         <section className="listing-detail-main">
@@ -256,9 +268,24 @@ function ListingDetails({
               </span>
 
               <span className="listing-status">
-                {listing.status}
+                {statusLabel(listing.status)}
               </span>
             </div>
+
+            {canMakeOffer && !offersClosed && (
+              <button
+                type="button"
+                className="button-primary detail-jump"
+                onClick={() =>
+                  document
+                    .getElementById("offer-card")
+                    ?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+              >
+                <HandCoins size={18} aria-hidden="true" />
+                Make an offer
+              </button>
+            )}
 
             <div className="listing-description">
               <h2>About this item</h2>
@@ -267,11 +294,17 @@ function ListingDetails({
               </p>
             </div>
 
-            {listing.offer_ends_at && (
-              <div className="listing-deadline">
+            {deadline && (
+              <div
+                className={
+                  offersClosed
+                    ? "listing-deadline is-closed"
+                    : "listing-deadline"
+                }
+              >
                 <Clock3 size={16} />
-                Offer deadline:{" "}
-                {new Date(listing.offer_ends_at).toLocaleString("en-KE")}
+                {offersClosed ? "Offers closed" : "Offer deadline"}:{" "}
+                {formatDeadline(deadline)}
               </div>
             )}
           </div>
@@ -279,20 +312,55 @@ function ListingDetails({
 
         <aside className="listing-detail-sidebar">
           {isOwner ? (
-            <div className="detail-action-card">
-              <h2>Your listing</h2>
-              <p>
-                This is your listing. You can review buyer inquiries
-                and offers from your account features.
-              </p>
-            </div>
-          ) : listing.status !== "active" ? (
-            <div className="detail-action-card">
-              <h2>Listing unavailable</h2>
-              <p>
-                This listing is no longer accepting inquiries or offers.
-              </p>
-            </div>
+            <>
+              <div className="detail-action-card">
+                <h2>Your listing</h2>
+                <p>
+                  Review the offers below, or update the details and
+                  deadline.
+                </p>
+                <button
+                  type="button"
+                  className="detail-submit-button"
+                  onClick={() => onNavigate(`/listings/${listing.id}/edit`)}
+                >
+                  <Edit3 size={16} /> Edit listing
+                </button>
+              </div>
+
+              <OfferManager
+                listing={listing}
+                onNotify={onNotify}
+                onStatusChange={(status) =>
+                  setListing((previous) =>
+                    previous && previous.status !== status
+                      ? { ...previous, status }
+                      : previous
+                  )
+                }
+              />
+            </>
+          ) : !isOpen ? (
+            myOffer?.is_winner ? (
+              <div className="detail-action-card">
+                <div className="detail-card-heading">
+                  <CheckCircle2 size={20} />
+                  <h2>Your offer was accepted</h2>
+                </div>
+                <p>
+                  The seller chose your offer of{" "}
+                  <strong>{formatPrice(myOffer.amount)}</strong>. Send them
+                  a message to arrange the next steps.
+                </p>
+              </div>
+            ) : (
+              <div className="detail-action-card">
+                <h2>Listing unavailable</h2>
+                <p>
+                  This listing is no longer accepting inquiries or offers.
+                </p>
+              </div>
+            )
           ) : (
             <>
               <div className="detail-action-card">
@@ -333,14 +401,15 @@ function ListingDetails({
                 </form>
               </div>
 
-              <div className="detail-action-card">
+              <div className="detail-action-card offer-card" id="offer-card">
                 <div className="detail-card-heading">
                   <HandCoins size={20} />
                   <h2>Make an offer</h2>
                 </div>
 
                 <p>
-                  Interested in the item? Submit an offer to the seller.
+                  Interested in the item? Submit a private offer to the
+                  seller.
                 </p>
 
                 {offerLoading ? (
@@ -355,6 +424,13 @@ function ListingDetails({
                   </div>
                 ) : null}
 
+                {offersClosed ? (
+                  <p className="offers-closed-note" role="status">
+                    <Clock3 size={16} aria-hidden="true" />
+                    The offer deadline has passed, so new offers can no
+                    longer be submitted. You can still message the seller.
+                  </p>
+                ) : (
                 <form onSubmit={handleOfferSubmit}>
                   <label htmlFor="offer-amount">
                     Your offer (KES)
@@ -396,6 +472,7 @@ function ListingDetails({
                     {sendingOffer ? "Submitting..." : "Submit offer"}
                   </button>
                 </form>
+                )}
               </div>
             </>
           )}

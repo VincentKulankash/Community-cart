@@ -1,118 +1,126 @@
+import {
+  ArrowRight,
+  HandCoins,
+  ImageOff,
+  MapPin,
+  Plus,
+  Tag,
+} from "lucide-react";
 
-import { ArrowDown, ArrowRight, Sparkles } from "lucide-react";
+import "../styles/hero-atom.css";
 
 /*
  * DEVELOPER: Olentiki
  * RESPONSIBILITY: Homepage hero section.
  *
- * TASKS:
- * - Improve the hero layout, messaging and visual presentation.
- * - Add appropriate imagery or visual elements where needed.
- * - Ensure call-to-action buttons use the existing application callbacks.
- * - Make the section responsive.
- *
- * STYLING: src/styles/home.css
+ * The floating atom is the hero's signature visual (pure CSS, see
+ * styles/hero-atom.css). The two cards orbiting it show real listings
+ * passed in from Home, so the hero always reflects the marketplace.
  */
 
-function Hero({ onShowAllFinds }) {
+function formatPrice(price) {
+  return new Intl.NumberFormat("en-KE", {
+    style: "currency",
+    currency: "KES",
+    maximumFractionDigits: 0,
+  }).format(Number(price) || 0);
+}
+
+function Hero({ onShowAllFinds, onCreateListing, featured = [] }) {
+  const cards = featured.slice(0, 2);
+
   return (
     <section className="hero" aria-labelledby="hero-title">
-      <div className="hero-copy">
-        <div className="eyebrow">
-          <span className="eyebrow-dot" /> THE NEIGHBORHOOD MARKETPLACE
-        </div>
-
-        <h1 id="hero-title">
-          Good things<br />
-          find <em>new homes.</em>
-        </h1>
-
-        <p className="hero-description">
-          Lovely secondhand things, from people just around the corner.
-          Find a little something and keep good stuff going.
-        </p>
-
-        <div className="hero-actions">
-          <button
-            className="button-primary"
-            type="button"
-            onClick={onShowAllFinds}
-          >
-            Find your next favorite <ArrowRight size={17} />
-          </button>
-
-          <a className="text-link" href="#how-it-works">
-            A better way to shop <ArrowDown size={14} />
-          </a>
-        </div>
-
-        <div className="hero-proof">
-          <div className="avatar-stack" aria-hidden="true">
-            <span>J</span>
-            <span>M</span>
-            <span>A</span>
-            <span>+</span>
+      <div className="hero-inner">
+        <div className="hero-copy">
+          <div className="eyebrow">
+            <span className="eyebrow-dot" /> The neighbourhood marketplace
           </div>
 
-          <span>
-            <strong>Good finds, close by.</strong>
-            <br />
-            A little more local. A little less new.
-          </span>
+          <h1 id="hero-title">
+            Good things find{" "}
+            <span className="hero-highlight">new homes.</span>
+          </h1>
+
+          <p className="hero-description">
+            Second-hand finds from people near you. Ask the seller a
+            question, make a private offer, or list something of your own.
+          </p>
+
+          <div className="hero-actions">
+            <button
+              className="button-primary"
+              type="button"
+              onClick={onShowAllFinds}
+            >
+              Browse finds <ArrowRight size={18} aria-hidden="true" />
+            </button>
+
+            <button
+              className="button-secondary"
+              type="button"
+              onClick={onCreateListing}
+            >
+              <Plus size={18} aria-hidden="true" /> List an item
+            </button>
+          </div>
+
+          <ul className="hero-points">
+            <li>
+              <span className="hero-point-icon">
+                <MapPin size={18} aria-hidden="true" />
+              </span>
+              Buy from people nearby
+            </li>
+            <li>
+              <span className="hero-point-icon">
+                <HandCoins size={18} aria-hidden="true" />
+              </span>
+              Private, sealed offers
+            </li>
+            <li>
+              <span className="hero-point-icon">
+                <Tag size={18} aria-hidden="true" />
+              </span>
+              List in a couple of minutes
+            </li>
+          </ul>
         </div>
-      </div>
 
-      <div
-        className="hero-art"
-        aria-label="A collection of preloved home and lifestyle finds"
-      >
-        <div className="hero-sun" />
+        <div className="hero-atom" aria-hidden="true">
+          <div className="atom-stage">
+            <div className="atom-grid" />
+            <div className="atom-glow" />
 
-        <div className="hero-art-label">
-          <Sparkles size={14} /> THE GOOD STUFF, CIRCULATING
-        </div>
-
-        <div className="hero-stage">
-          <div className="stage-grid" />
-          <div className="stage-glow" />
-
-          <div className="stage-rig">
-            <div className="stage-orbit orbit-a" />
-            <div className="stage-orbit orbit-b" />
-            <div className="stage-orbit orbit-c" />
-
-            <div className="stage-core">
-              <span className="core-shard shard-a" />
-              <span className="core-shard shard-b" />
-              <span className="core-shard shard-c" />
-              <span className="core-inner" />
+            <div className="atom-rig">
+              <span className="atom-orbit orbit-a" />
+              <span className="atom-orbit orbit-b" />
+              <span className="atom-orbit orbit-c" />
+              <div className="atom-core" />
             </div>
-          </div>
 
-          <div className="stage-card stage-card-top">
-            <span>COMMUNITY LOOP</span>
-            <strong>LIVE</strong>
-          </div>
+            <div className="atom-pulse" />
 
-          <div className="stage-card stage-card-side">
-            <span>Nearby finds</span>
-            <strong>202</strong>
+            {cards.map((listing, index) => (
+              <div
+                className={`atom-card atom-card-${index + 1}`}
+                key={listing.id}
+              >
+                <span className="atom-card-thumb">
+                  {listing.image_url ? (
+                    <img src={listing.image_url} alt="" loading="lazy" />
+                  ) : (
+                    <ImageOff size={16} />
+                  )}
+                </span>
+                <span className="atom-card-text">
+                  <span>{listing.title}</span>
+                  <strong>{formatPrice(listing.price)}</strong>
+                </span>
+              </div>
+            ))}
           </div>
-
-          <div className="stage-pulse" />
         </div>
-
-        <div className="hero-index">
-          LOCAL FINDS
-          <br />
-          <span>LOS ANGELES, CA</span>
-        </div>
-      </div>
-
-      <div className="hero-bottomline">
-        <span>01 — 04</span>
-        <span>Scroll to wander</span>
-        <span className="line" />
       </div>
     </section>
   );

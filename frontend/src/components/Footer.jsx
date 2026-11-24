@@ -1,4 +1,3 @@
-
 /*
   DEVELOPER: Olentiki
 
@@ -6,53 +5,37 @@
   Main website footer.
 */
 
-function Footer({ onNavigate, isMarketplace = false }) {
-  function handleBackToGoodStuff(event) {
-    event.preventDefault();
-
-    if (isMarketplace) {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-      return;
-    }
-
-    document.getElementById("finds")?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
-  }
+function Footer({ onNavigate }) {
+  const year = new Date().getFullYear();
 
   return (
     <footer className="site-footer">
-      <a
-        className="wordmark footer-wordmark"
-        href="/"
-        aria-label="LocalLoop home"
-        onClick={(event) => {
-          event.preventDefault();
-          onNavigate("/");
-        }}
-      >
-        <span className="wordmark-symbol">
-          <span />
-          <span />
-        </span>
+      <div className="site-footer-inner">
+        <a
+          className="wordmark"
+          href="/"
+          aria-label="Community Cart home"
+          onClick={(event) => {
+            event.preventDefault();
+            onNavigate("/");
+          }}
+        >
+          <span className="wordmark-symbol" aria-hidden="true" />
+          <span>Community Cart</span>
+        </a>
 
-        <span>
-          local<span className="wordmark-light">loop</span>
-        </span>
-      </a>
+        <span>Good things find new homes. © {year} Community Cart</span>
 
-      <span>Good things go around. © 2025 LocalLoop</span>
-
-      <a
-        href={isMarketplace ? "#top" : "#finds"}
-        onClick={handleBackToGoodStuff}
-      >
-        Back to the good stuff ↑
-      </a>
+        <button
+          className="footer-top"
+          type="button"
+          onClick={() =>
+            window.scrollTo({ top: 0, behavior: "smooth" })
+          }
+        >
+          Back to top ↑
+        </button>
+      </div>
     </footer>
   );
 }

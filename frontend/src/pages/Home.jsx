@@ -1,6 +1,4 @@
-
 import { useEffect, useState } from "react";
-import { Leaf } from "lucide-react";
 
 import Hero from "../components/Hero";
 import Manifesto from "../components/Manifesto";
@@ -8,9 +6,15 @@ import SellStrip from "../components/SellStrip";
 import ListingCard from "../components/ListingCard";
 import { getListings } from "../services/listings";
 
-const HOMEPAGE_LISTING_LIMIT = 4;
+const HOMEPAGE_LISTING_LIMIT = 8;
 
-function Home({ onShowAllFinds, onCreateListing, onNavigate }) {
+function Home({
+  onShowAllFinds,
+  onCreateListing,
+  onNavigate,
+  savedItems = [],
+  onToggleSaved,
+}) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -52,52 +56,34 @@ function Home({ onShowAllFinds, onCreateListing, onNavigate }) {
 
   const displayedListings = listings.slice(0, HOMEPAGE_LISTING_LIMIT);
 
+  // Prefer listings that have a photo for the hero collage.
+  const featured = [
+    ...listings.filter((listing) => listing.image_url),
+    ...listings.filter((listing) => !listing.image_url),
+  ].slice(0, 3);
+
   return (
     <main>
-      <Hero onShowAllFinds={onShowAllFinds} />
-
-      <div
-        className="loop-ticker"
-        aria-label="LocalLoop community highlights"
-      >
-        <div className="loop-ticker-track">
-          <span>GOODS WITH STORIES</span>
-          <Leaf size={13} />
-          <span>BUY NEARBY</span>
-          <Leaf size={13} />
-          <span>LOVE IT LONGER</span>
-          <Leaf size={13} />
-          <span>PASS IT FORWARD</span>
-          <Leaf size={13} />
-
-          <span aria-hidden="true">GOODS WITH STORIES</span>
-          <Leaf size={13} aria-hidden="true" />
-          <span aria-hidden="true">BUY NEARBY</span>
-          <Leaf size={13} aria-hidden="true" />
-          <span aria-hidden="true">LOVE IT LONGER</span>
-          <Leaf size={13} aria-hidden="true" />
-          <span aria-hidden="true">PASS IT FORWARD</span>
-          <Leaf size={13} aria-hidden="true" />
-        </div>
-      </div>
+      <Hero
+        onShowAllFinds={onShowAllFinds}
+        onCreateListing={onCreateListing}
+        featured={featured}
+      />
 
       <section
         className="finds-section"
         id="finds"
         aria-labelledby="finds-title"
-        data-reveal
       >
         <div className="section-heading">
           <div>
             <div className="eyebrow">
-              <span className="eyebrow-dot" /> AROUND THE CORNER
+              <span className="eyebrow-dot" /> Around the corner
             </div>
 
             <h2 id="finds-title">A few good finds.</h2>
 
-            <p>
-              One person's maybe is another person's absolutely.
-            </p>
+            <p>One person's maybe is another person's absolutely.</p>
           </div>
         </div>
 
@@ -127,6 +113,8 @@ function Home({ onShowAllFinds, onCreateListing, onNavigate }) {
                   key={listing.id}
                   listing={listing}
                   index={index}
+                  isSaved={savedItems.includes(Number(listing.id))}
+                  onToggleSaved={onToggleSaved}
                   onQuickView={(selectedListing) =>
                     onNavigate(`/listings/${selectedListing.id}`)
                   }

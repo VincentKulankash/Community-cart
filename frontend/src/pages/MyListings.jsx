@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { ArrowLeft, Edit3, Plus, Trash2 } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Edit3, HandCoins, Plus, Trash2 } from "lucide-react";
+import BackButton from "../components/BackButton";
 import { deleteListing, getMyListings } from "../services/listings";
 import "../styles/listing-forms.css";
 
@@ -11,12 +12,19 @@ function formatPrice(price) {
   }).format(Number(price) || 0);
 }
 
-function MyListings({ currentUser, onNavigate, onNotify }) {
+function statusLabel(status) {
+  if (!status) return "";
+  return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
+}
+
+function MyListings({ currentUser, onNavigate, onNotify, onBack }) {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const cancelButtonRef = useRef(null);
 
   const currentUserId = currentUser?.id ?? null;
 
@@ -56,8 +64,25 @@ function MyListings({ currentUser, onNavigate, onNotify }) {
     };
   }, [currentUserId]);
 
-  async function handleDelete(listing) {
-    if (!window.confirm(`Delete "${listing.title}"? This cannot be undone.`)) return;
+  // Confirm dialog: focus the safe action and close on Escape.
+  useEffect(() => {
+    if (!pendingDelete) return undefined;
+
+    cancelButtonRef.current?.focus();
+
+    function handleKeyDown(event) {
+      if (event.key === "Escape" && deletingId === null) {
+        setPendingDelete(null);
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pendingDelete, deletingId]);
+
+  async function confirmDelete() {
+    const listing = pendingDelete;
+    if (!listing) return;
 
     try {
       setDeletingId(listing.id);
@@ -71,19 +96,23 @@ function MyListings({ currentUser, onNavigate, onNotify }) {
       setError(err.message || "Unable to delete the listing.");
     } finally {
       setDeletingId(null);
+      setPendingDelete(null);
     }
   }
 
   return (
     <main className="listing-form-page my-listings-page">
-      <button type="button" className="listing-form-back" onClick={() => onNavigate("/")}>
-        <ArrowLeft size={16} /> Back to home
-      </button>
+      <BackButton onBack={onBack} fallback="/" className="listing-form-back" />
 
       <div className="my-listings-heading">
         <div>
           <p>YOUR ACCOUNT</p>
           <h1>My listings</h1>
+          {!loading && !error && listings.length > 0 && (
+            <span className="my-listings-count">
+              {listings.length} {listings.length === 1 ? "listing" : "listings"}
+            </span>
+          )}
         </div>
         <button type="button" onClick={() => onNavigate("/create-listing")}>
           <Plus size={17} /> Create listing
@@ -112,22 +141,38 @@ function MyListings({ currentUser, onNavigate, onNotify }) {
         <div className="my-listings-grid">
           {listings.map((listing) => (
             <article className="my-listing-card" key={listing.id}>
-              <div className="my-listing-image">
+              <a
+                className="my-listing-image"
+                href={`/listings/${listing.id}`}
+                aria-label={`View ${listing.title}`}
+                onClick={(event) => {
+                  event.preventDefault();
+                  onNavigate(`/listings/${listing.id}`);
+                }}
+              >
                 {listing.image_url ? (
-                  <img src={listing.image_url} alt={listing.title} />
+                  <img src={listing.image_url} alt="" loading="lazy" />
                 ) : (
-                  <span>No image</span>
+                  <span>No photo</span>
                 )}
-              </div>
+              </a>
               <div className="my-listing-content">
                 <div className="my-listing-meta">
                   <span>{listing.category}</span>
-                  <span className={`listing-status-${listing.status}`}>{listing.status}</span>
+                  <span className={`listing-status-${listing.status}`}>
+                    {statusLabel(listing.status)}
+                  </span>
                 </div>
                 <h2>{listing.title}</h2>
                 <strong>{formatPrice(listing.price)}</strong>
                 <p>{listing.location || "Location not specified"}</p>
                 <div className="my-listing-actions">
+                  <button
+                    type="button"
+                    onClick={() => onNavigate(`/listings/${listing.id}`)}
+                  >
+                    <HandCoins size={15} /> Offers
+                  </button>
                   <button
                     type="button"
                     onClick={() => onNavigate(`/listings/${listing.id}/edit`)}
@@ -137,7 +182,7 @@ function MyListings({ currentUser, onNavigate, onNotify }) {
                   <button
                     type="button"
                     className="my-listing-delete"
-                    onClick={() => handleDelete(listing)}
+                    onClick={() => setPendingDelete(listing)}
                     disabled={deletingId === listing.id}
                   >
                     <Trash2 size={15} />{" "}
@@ -147,6 +192,46 @@ function MyListings({ currentUser, onNavigate, onNotify }) {
               </div>
             </article>
           ))}
+        </div>
+      )}
+
+      {pendingDelete && (
+        <div
+          className="modal-backdrop"
+          onClick={() => deletingId === null && setPendingDelete(null)}
+        >
+          <div
+            className="modal"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-title"
+            aria-describedby="delete-desc"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <h2 id="delete-title">Delete this listing?</h2>
+            <p id="delete-desc">
+              “{pendingDelete.title}” will be removed for good. This cannot
+              be undone.
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                ref={cancelButtonRef}
+                onClick={() => setPendingDelete(null)}
+                disabled={deletingId !== null}
+              >
+                Keep listing
+              </button>
+              <button
+                type="button"
+                className="modal-danger"
+                onClick={confirmDelete}
+                disabled={deletingId !== null}
+              >
+                {deletingId !== null ? "Deleting..." : "Delete listing"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </main>

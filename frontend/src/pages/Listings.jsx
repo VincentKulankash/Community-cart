@@ -1,11 +1,11 @@
-
 import { useEffect, useMemo, useState } from "react";
-import { ArrowLeft, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import BackButton from "../components/BackButton";
 
 import ListingCard from "../components/ListingCard";
 import { getListings } from "../services/listings";
 
-function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
+function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
   const [listings, setListings] = useState([]);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All categories");
@@ -80,26 +80,26 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
     });
   }, [listings, search, category]);
 
+  const hasFilters = category !== "All categories" || search.trim() !== "";
+
+  function clearFilters() {
+    setSearch("");
+    setCategory("All categories");
+  }
+
   return (
     <main className="marketplace-page">
       <section className="finds-section marketplace-section">
-        <button
-          type="button"
-          className="marketplace-back"
-          onClick={() => onNavigate("/")}
-        >
-          <ArrowLeft size={16} />
-          Back to home
-        </button>
+        <BackButton onBack={onBack} fallback="/" className="marketplace-back" />
 
         <div className="section-heading">
           <div>
             <div className="eyebrow">
               <span className="eyebrow-dot" />
-              THE LOCAL MARKETPLACE
+              The local marketplace
             </div>
 
-            <h2>Find something good.</h2>
+            <h1>Find something good.</h1>
 
             <p>
               Discover things worth giving a second home.
@@ -109,27 +109,34 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
 
         <div className="marketplace-controls">
           <div className="marketplace-search">
-            <Search size={18} />
+            <Search size={18} aria-hidden="true" />
 
             <input
               type="search"
               placeholder="Search for something..."
+              aria-label="Search listings"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
 
-          <select
-            value={category}
-            onChange={(event) => setCategory(event.target.value)}
+          <div
+            className="category-chips"
+            role="group"
             aria-label="Filter by category"
           >
             {categories.map((item) => (
-              <option key={item} value={item}>
+              <button
+                key={item}
+                type="button"
+                className={item === category ? "chip selected" : "chip"}
+                aria-pressed={item === category}
+                onClick={() => setCategory(item)}
+              >
                 {item}
-              </option>
+              </button>
             ))}
-          </select>
+          </div>
         </div>
 
         {loading && (
@@ -146,10 +153,22 @@ function Listings({ onNavigate, savedItems = [], onToggleSaved }) {
 
         {!loading && !error && (
           <>
-            <p className="marketplace-count">
-              {filteredListings.length}{" "}
-              {filteredListings.length === 1 ? "find" : "finds"} available
-            </p>
+            <div className="marketplace-results-bar">
+              <p className="marketplace-count" role="status">
+                {filteredListings.length}{" "}
+                {filteredListings.length === 1 ? "find" : "finds"} available
+              </p>
+
+              {hasFilters && (
+                <button
+                  type="button"
+                  className="marketplace-clear"
+                  onClick={clearFilters}
+                >
+                  Clear filters
+                </button>
+              )}
+            </div>
 
             {filteredListings.length > 0 ? (
               <div className="listing-grid">

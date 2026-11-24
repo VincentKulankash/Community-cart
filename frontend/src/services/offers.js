@@ -7,6 +7,7 @@
  * - getListingOffers(listingId)
  * - getMyOffer(listingId)
  * - closeListingAuction(listingId)
+ * - acceptOffer(listingId, offerId)
  *
  * TASKS:
  * - Connect the existing offer service functions to the UI.
@@ -63,5 +64,12 @@ export function getMyOffer(listingId) {
 export function closeListingAuction(listingId) {
   return post(
     `${LISTINGS_ENDPOINT}/${encodeURIComponent(listingId)}/offers/close`
+  );
+}
+
+// Accept a specific offer (owner only) and mark the listing as sold.
+export function acceptOffer(listingId, offerId) {
+  return post(
+    `${LISTINGS_ENDPOINT}/${encodeURIComponent(listingId)}/offers/${encodeURIComponent(offerId)}/accept`
   );
 }

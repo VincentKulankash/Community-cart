@@ -1,9 +1,4 @@
-
-import {
-  ArrowUpRight,
-  Heart,
-  MapPin,
-} from "lucide-react";
+import { Heart, ImageOff, MapPin } from "lucide-react";
 
 function formatPrice(price) {
   return new Intl.NumberFormat("en-KE", {
@@ -13,6 +8,11 @@ function formatPrice(price) {
   }).format(Number(price) || 0);
 }
 
+/*
+ * The whole card is one tap target: the title is a real link whose
+ * ::after stretches over the card (see .listing-link in styles.css).
+ * The save button sits above it, so tapping the heart never navigates.
+ */
 function ListingCard({
   listing,
   index = 0,
@@ -31,16 +31,13 @@ function ListingCard({
           <img
             className="listing-image"
             src={listing.image_url}
-            alt={listing.title}
+            alt=""
             loading="lazy"
           />
         ) : (
-          <div
-            className="listing-image-placeholder"
-            role="img"
-            aria-label={`No image available for ${listing.title}`}
-          >
-            No image available
+          <div className="listing-image-placeholder" aria-hidden="true">
+            <ImageOff size={26} />
+            No photo
           </div>
         )}
 
@@ -55,39 +52,36 @@ function ListingCard({
           aria-pressed={isSaved}
           onClick={() => onToggleSaved?.(listing)}
         >
-          <Heart size={17} fill={isSaved ? "currentColor" : "none"} />
+          <Heart size={18} fill={isSaved ? "currentColor" : "none"} />
         </button>
 
         {listing.condition && (
-          <span className="condition-tag">
-            {listing.condition}
-          </span>
+          <span className="condition-tag">{listing.condition}</span>
         )}
-
-        <button
-          className="quick-view-button"
-          type="button"
-          onClick={() => onQuickView?.(listing)}
-        >
-          View details <ArrowUpRight size={14} />
-        </button>
       </div>
 
       <div className="listing-details">
-        <div className="listing-category">
-          {listing.category}
-        </div>
+        {listing.category && (
+          <div className="listing-category">{listing.category}</div>
+        )}
 
-        <div className="listing-title-row">
-          <h3>{listing.title}</h3>
+        <h3 className="listing-title">
+          <a
+            className="listing-link"
+            href={`/listings/${listing.id}`}
+            onClick={(event) => {
+              event.preventDefault();
+              onQuickView?.(listing);
+            }}
+          >
+            {listing.title}
+          </a>
+        </h3>
 
-          <span className="listing-price">
-            {formatPrice(listing.price)}
-          </span>
-        </div>
+        <div className="listing-price">{formatPrice(listing.price)}</div>
 
         <div className="listing-location">
-          <MapPin size={12} />
+          <MapPin size={13} aria-hidden="true" />
           {listing.location || "Location not specified"}
         </div>
       </div>

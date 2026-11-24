@@ -1,8 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 
-import Announcement from "./components/Announcement";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 
@@ -38,6 +36,20 @@ function App() {
   const [currentPath, setCurrentPath] = useState(
     window.location.pathname
   );
+
+  /*
+   * Number the pages we push onto the history stack so "Back" can tell
+   * whether there is an earlier page inside the app (idx > 0) or the
+   * visitor landed here directly.
+   */
+  useEffect(() => {
+    if (typeof window.history.state?.idx !== "number") {
+      window.history.replaceState(
+        { ...(window.history.state || {}), idx: 0 },
+        ""
+      );
+    }
+  }, []);
 
   const [currentUser, setCurrentUser] = useState(null);
 
@@ -118,7 +130,7 @@ function App() {
   }, [toast]);
 
   /*
-   * Global scroll, hero pointer and reveal animations.
+   * Header shadow on scroll and reveal-on-scroll animations.
    */
   useEffect(() => {
     const appShell = document.querySelector(".app-shell");
@@ -126,44 +138,9 @@ function App() {
     if (!appShell) return;
 
     const header = document.querySelector(".site-header");
-    const progress = document.querySelector(".scroll-progress span");
-    const hero = document.querySelector(".hero");
 
     function updateScrollEffects() {
-      const scrollTop = window.scrollY;
-
-      const maxScroll =
-        document.documentElement.scrollHeight - window.innerHeight;
-
-      header?.classList.toggle("is-scrolled", scrollTop > 24);
-
-      if (progress) {
-        progress.style.transform = `scaleX(${
-          maxScroll > 0 ? scrollTop / maxScroll : 0
-        })`;
-      }
-    }
-
-    function updateHeroPointer(event) {
-      if (
-        !hero ||
-        window.matchMedia("(prefers-reduced-motion: reduce)").matches
-      ) {
-        return;
-      }
-
-      const bounds = hero.getBoundingClientRect();
-
-      const x = (event.clientX - bounds.left) / bounds.width - 0.5;
-      const y = (event.clientY - bounds.top) / bounds.height - 0.5;
-
-      hero.style.setProperty("--pointer-x", `${x * 12}px`);
-      hero.style.setProperty("--pointer-y", `${y * 8}px`);
-    }
-
-    function resetHeroPointer() {
-      hero?.style.setProperty("--pointer-x", "0px");
-      hero?.style.setProperty("--pointer-y", "0px");
+      header?.classList.toggle("is-scrolled", window.scrollY > 24);
     }
 
     const revealObserver = new IntersectionObserver(
@@ -202,17 +179,11 @@ function App() {
       passive: true,
     });
 
-    hero?.addEventListener("pointermove", updateHeroPointer);
-    hero?.addEventListener("pointerleave", resetHeroPointer);
-
     return () => {
       revealObserver.disconnect();
       revealMutationObserver.disconnect();
 
       window.removeEventListener("scroll", updateScrollEffects);
-
-      hero?.removeEventListener("pointermove", updateHeroPointer);
-      hero?.removeEventListener("pointerleave", resetHeroPointer);
     };
   }, [currentPath]);
 
@@ -220,7 +191,9 @@ function App() {
    * Application navigation.
    */
   function navigate(path) {
-    window.history.pushState({}, "", path);
+    const idx = (window.history.state?.idx ?? 0) + 1;
+
+    window.history.pushState({ idx }, "", path);
 
     setCurrentPath(path);
 
@@ -228,6 +201,18 @@ function App() {
       top: 0,
       behavior: "auto",
     });
+  }
+
+  /*
+   * Go back one page inside the app, or to `fallback` when there is no
+   * earlier page (for example when the visitor opened a shared link).
+   */
+  function goBack(fallback = "/") {
+    if ((window.history.state?.idx ?? 0) > 0) {
+      window.history.back();
+    } else {
+      navigate(fallback);
+    }
   }
 
   /*
@@ -349,19 +334,12 @@ function App() {
    */
   return (
     <div className="app-shell">
-      <div className="scroll-progress" aria-hidden="true">
-        <span />
-      </div>
-
-      <Announcement />
-
       <Navbar
         currentUser={currentUser}
+        currentPath={currentPath}
         onNavigate={navigate}
         onLogout={handleLogout}
-        savedOnly={currentPath === "/favorites"}
         savedCount={savedItems.length}
-        onToggleSaved={() => navigate("/favorites")}
         onCreateListing={openSellMessage}
       />
 
@@ -370,6 +348,7 @@ function App() {
           listingId={selectedEditListingId}
           currentUser={currentUser}
           onNavigate={navigate}
+          onBack={goBack}
           onNotify={setToast}
         />
       ) : selectedListingId ? (
@@ -377,28 +356,33 @@ function App() {
           listingId={selectedListingId}
           currentUser={currentUser}
           onNavigate={navigate}
+          onBack={goBack}
           onNotify={setToast}
         />
       ) : currentPath === "/my-listings" ? (
         <MyListings
           currentUser={currentUser}
           onNavigate={navigate}
+          onBack={goBack}
           onNotify={setToast}
         />
       ) : currentPath === "/create-listing" ? (
         <CreateListing
           currentUser={currentUser}
           onNavigate={navigate}
+          onBack={goBack}
           onNotify={setToast}
         />
       ) : currentPath === "/favorites" ? (
         <Favorites
           currentUser={currentUser}
           onNavigate={navigate}
+          onBack={goBack}
         />
       ) : currentPath === "/listings" ? (
         <Listings
           onNavigate={navigate}
+          onBack={goBack}
           savedItems={savedItems}
           onToggleSaved={toggleSaved}
         />
@@ -407,17 +391,12 @@ function App() {
           onShowAllFinds={showAllFinds}
           onCreateListing={openSellMessage}
           onNavigate={navigate}
+          savedItems={savedItems}
+          onToggleSaved={toggleSaved}
         />
       )}
 
-      <Footer
-        onNavigate={navigate}
-        isMarketplace={
-          currentPath === "/listings" ||
-          currentPath === "/favorites" ||
-          currentPath === "/my-listings"
-        }
-      />
+      <Footer onNavigate={navigate} />
 
       {toast && (
         <div className="toast" role="status">

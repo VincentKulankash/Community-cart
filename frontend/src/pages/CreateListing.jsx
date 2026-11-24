@@ -1,6 +1,9 @@
 import { useRef, useState } from "react";
-import { ArrowLeft, ImagePlus, Loader2, Plus, RefreshCw, X } from "lucide-react";
+import { ImagePlus, Loader2, Plus, RefreshCw, X } from "lucide-react";
 import { createListing } from "../services/listings";
+import BackButton from "../components/BackButton";
+import DeadlineField from "../components/DeadlineField";
+import { localInputToServerUtc, toLocalInputValue } from "../utils/dates";
 import "../styles/listing-forms.css";
 
 const EMPTY_FORM = {
@@ -11,6 +14,7 @@ const EMPTY_FORM = {
   condition: "",
   location: "",
   image_url: "",
+  offer_ends_at: "",
 };
 
 const CATEGORIES = ["Electronics", "Furniture", "Clothing", "Sports", "Books", "Home", "Other"];
@@ -91,10 +95,17 @@ function validateListingForm(form) {
     errors.price = "Enter a price greater than 0.";
   }
 
+  if (form.offer_ends_at) {
+    const deadline = new Date(form.offer_ends_at);
+    if (Number.isNaN(deadline.getTime()) || deadline.getTime() <= Date.now()) {
+      errors.offer_ends_at = "Choose a time in the future.";
+    }
+  }
+
   return errors;
 }
 
-function CreateListing({ onNavigate, onNotify }) {
+function CreateListing({ onNavigate, onNotify, onBack }) {
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState("");
@@ -183,6 +194,7 @@ function CreateListing({ onNavigate, onNotify }) {
         condition: formData.condition,
         location: formData.location.trim(),
         image_url: formData.image_url.trim(),
+        offer_ends_at: localInputToServerUtc(formData.offer_ends_at) || undefined,
       });
       setSuccess("Your listing has been created.");
       onNotify?.("Your listing has been created");
@@ -198,17 +210,15 @@ function CreateListing({ onNavigate, onNotify }) {
 
   return (
     <main className="listing-form-page">
-      <button
-        type="button"
+      <BackButton
+        onBack={onBack}
+        fallback="/my-listings"
         className="listing-form-back"
-        onClick={() => onNavigate("/my-listings")}
-      >
-        <ArrowLeft size={16} /> Back to my listings
-      </button>
+      />
 
       <section className="listing-form-card">
         <div className="listing-form-heading">
-          <p>SELL ON LOCALLOOP</p>
+          <p>SELL ON COMMUNITY CART</p>
           <h1>Create a listing</h1>
           <span>Add the details buyers need to discover and contact you.</span>
         </div>
@@ -400,6 +410,22 @@ function CreateListing({ onNavigate, onNotify }) {
                 placeholder="Nairobi"
               />
             </div>
+
+            <DeadlineField
+              id="create-offer-ends-at"
+              value={formData.offer_ends_at}
+              min={toLocalInputValue(new Date())}
+              error={fieldErrors.offer_ends_at}
+              onChange={(value) => {
+                setFormData((previous) => ({ ...previous, offer_ends_at: value }));
+                setFieldErrors((previous) => {
+                  if (!previous.offer_ends_at) return previous;
+                  const next = { ...previous };
+                  delete next.offer_ends_at;
+                  return next;
+                });
+              }}
+            />
           </div>
 
           <button type="submit" className="listing-form-submit" disabled={loading || uploading}>

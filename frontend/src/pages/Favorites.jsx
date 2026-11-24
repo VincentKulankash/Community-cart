@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Heart, LoaderCircle, Search } from "lucide-react";
 
@@ -15,6 +14,7 @@ import "../styles/favorites.css";
 export default function Favorites({
   currentUser,
   onNavigate,
+  onBack,
   onSavedItemsChange,
 }) {
   const [favorites, setFavorites] = useState([]);
@@ -146,7 +146,7 @@ export default function Favorites({
             type="button"
             onClick={() => onNavigate("/")}
           >
-            Back to LocalLoop
+            Back to Community Cart
           </button>
         </section>
       </main>
@@ -160,10 +160,10 @@ export default function Favorites({
         <button
           className="favorites-back-link"
           type="button"
-          onClick={() => onNavigate("/")}
+          onClick={() => (onBack ? onBack("/") : onNavigate("/"))}
         >
           <ArrowLeft size={17} />
-          Back to exploring
+          Back
         </button>
 
         <header className="favorites-heading">

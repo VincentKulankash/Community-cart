@@ -98,13 +98,13 @@ function Register({ onNavigate }) {
           onClick={() => onNavigate("/")}
         >
           <ArrowLeft size={18} />
-          Back to LocalLoop
+          Back to Community Cart
         </button>
 
         <div className="auth-card">
           <div className="auth-brand">
-            <span className="auth-brand-icon">L</span>
-            <span>LocalLoop</span>
+            <span className="auth-brand-icon">C</span>
+            <span>Community Cart</span>
           </div>
 
           <div className="auth-heading">

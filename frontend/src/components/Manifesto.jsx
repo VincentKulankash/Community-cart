@@ -1,65 +1,56 @@
-
-import { ArrowUpRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 /*
  * DEVELOPER: Olentiki
- * RESPONSIBILITY: Homepage brand introduction section.
- *
- * TASKS:
- * - Improve the presentation of the marketplace introduction.
- * - Maintain consistent typography and spacing.
- * - Ensure the section fits the overall homepage design.
- *
- * STYLING: src/styles/home.css
+ * RESPONSIBILITY: Homepage "how it works" section.
  */
+
+const STEPS = [
+  {
+    title: "Browse nearby finds",
+    body: "Search by keyword or category and see what people around you are passing on.",
+  },
+  {
+    title: "Ask or make an offer",
+    body: "Message the seller with a question, or send a private offer they alone can see.",
+  },
+  {
+    title: "List what you don't need",
+    body: "Add a photo, a price and a few details. Buyers can reach you straight away.",
+  },
+];
 
 function Manifesto({ onShowAllFinds }) {
   return (
-    <section className="manifesto" id="how-it-works">
-      <div className="manifesto-art">
-        <div className="manifesto-orbit orbit-one" />
-        <div className="manifesto-orbit orbit-two" />
+    <section className="how-section" id="how-it-works" data-reveal>
+      <div className="eyebrow">
+        <span className="eyebrow-dot" /> How it works
+      </div>
 
-        <span className="manifesto-star">✳</span>
-
-        <div className="manifesto-stamp">
-          BUY NEARBY
-          <br />
-          LOVE LONGER
+      <div className="section-heading">
+        <div>
+          <h2>Simple, local, a little less new.</h2>
         </div>
       </div>
 
-      <div className="manifesto-copy">
-        <div className="eyebrow">
-          <span className="eyebrow-dot" /> A NICER KIND OF LOOP
-        </div>
+      <div className="how-steps">
+        {STEPS.map((step, index) => (
+          <div className="how-step" key={step.title}>
+            <div className="how-step-number">{index + 1}</div>
+            <h3>{step.title}</h3>
+            <p>{step.body}</p>
+          </div>
+        ))}
+      </div>
 
-        <h2>
-          Less new.
-          <br />
-          <em>More you.</em>
-        </h2>
-
-        <p>
-          Good things deserve more than one story. Meet the neighbors behind
-          the finds, give pre-loved pieces a fresh start, and make your next
-          favorite thing feel like it was meant to be.
-        </p>
-
+      <div className="how-cta">
         <button
-          className="manifesto-link"
+          className="button-secondary"
           type="button"
           onClick={onShowAllFinds}
         >
-          Come on in
-          <span>
-            <ArrowUpRight size={17} />
-          </span>
+          Start browsing <ArrowRight size={17} aria-hidden="true" />
         </button>
-      </div>
-
-      <div className="manifesto-side-note">
-        GOOD THINGS, PASSED AROUND — SINCE ALWAYS
       </div>
     </section>
   );

@@ -215,3 +215,85 @@ def test_listing_auto_closes_on_read_after_deadline(seller_client, expired_listi
     seller_client.get(f"/api/listings/{expired_listing.id}/offers")
     response = seller_client.get(f"/api/listings/{expired_listing.id}/offers")
     assert response.get_json()["status"] in ("closed", "sold")
+
+# ACCEPT A SPECIFIC OFFER
+
+def _make_offers(listing, buyer, seller):
+    """Two offers from two buyers; returns (low, high)."""
+    from models import User
+
+    other = User(name="Other Buyer", email="other-accept@example.com")
+    other.set_password("OtherPass123")
+    db.session.add(other)
+    db.session.commit()
+
+    low = Offer(listing_id=listing.id, buyer_id=buyer.id, amount=40, is_active=True)
+    high = Offer(listing_id=listing.id, buyer_id=other.id, amount=90, is_active=True)
+    db.session.add_all([low, high])
+    db.session.commit()
+    return low, high
+
+
+def test_owner_can_accept_a_lower_offer(seller_client, buyer, seller, listing):
+    low, high = _make_offers(listing, buyer, seller)
+
+    response = seller_client.post(
+        f"/api/listings/{listing.id}/offers/{low.id}/accept"
+    )
+
+    assert response.status_code == 200
+    body = response.get_json()
+    assert body["status"] == "sold"
+    assert body["winner_id"] == buyer.id
+    assert body["offer"]["is_winner"] is True
+
+    db.session.expire_all()
+    assert db.session.get(Offer, high.id).is_winner is False
+
+
+def test_owner_can_change_accepted_offer(seller_client, buyer, seller, listing):
+    low, high = _make_offers(listing, buyer, seller)
+
+    seller_client.post(f"/api/listings/{listing.id}/offers/{low.id}/accept")
+    response = seller_client.post(
+        f"/api/listings/{listing.id}/offers/{high.id}/accept"
+    )
+
+    assert response.status_code == 200
+    db.session.expire_all()
+    assert db.session.get(Offer, high.id).is_winner is True
+    assert db.session.get(Offer, low.id).is_winner is False
+
+
+def test_non_owner_cannot_accept_offer(buyer_client, buyer, seller, listing):
+    low, _ = _make_offers(listing, buyer, seller)
+
+    response = buyer_client.post(
+        f"/api/listings/{listing.id}/offers/{low.id}/accept"
+    )
+    assert response.status_code == 404
+
+
+def test_accept_offer_from_another_listing_is_404(seller_client, buyer, seller, listing):
+    low, _ = _make_offers(listing, buyer, seller)
+    other_listing = Listing(
+        title="Other", description="x", price=10, category="Home",
+        status="active", user_id=seller.id,
+    )
+    db.session.add(other_listing)
+    db.session.commit()
+
+    response = seller_client.post(
+        f"/api/listings/{other_listing.id}/offers/{low.id}/accept"
+    )
+    assert response.status_code == 404
+
+
+def test_owner_offer_list_includes_buyer_name(seller_client, buyer, seller, listing):
+    _make_offers(listing, buyer, seller)
+
+    response = seller_client.get(f"/api/listings/{listing.id}/offers")
+
+    assert response.status_code == 200
+    names = {o["buyer_name"] for o in response.get_json()["offers"]}
+    assert names == {"Test Buyer", "Other Buyer"}
