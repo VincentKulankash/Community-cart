@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 
 import Hero from "../components/Hero";
@@ -72,10 +73,11 @@ function Home({
         <div className="section-heading">
           <div>
             <div className="eyebrow">
-              <span className="eyebrow-dot" /> Around the corner
+              <span className="eyebrow-dot" />
+              Around the corner
             </div>
 
-            <h2 id="finds-title">A few good finds.</h2>
+            <h2 id="finds-title">A few good things.</h2>
 
             <p>One person's maybe is another person's absolutely.</p>
           </div>
