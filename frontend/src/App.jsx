@@ -9,6 +9,8 @@ import Listings from "./pages/Listings";
 import ListingDetails from "./pages/ListingDetails";
 import Favorites from "./pages/Favorites";
 import MyListings from "./pages/MyListings";
+import MyOffers from "./pages/MyOffers";
+import Messages from "./pages/Messages";
 import CreateListing from "./pages/CreateListing";
 import EditListing from "./pages/EditListing";
 import Login from "./pages/login";
@@ -361,6 +363,19 @@ function App() {
         />
       ) : currentPath === "/my-listings" ? (
         <MyListings
+          currentUser={currentUser}
+          onNavigate={navigate}
+          onBack={goBack}
+          onNotify={setToast}
+        />
+      ) : currentPath === "/my-offers" ? (
+        <MyOffers
+          currentUser={currentUser}
+          onNavigate={navigate}
+          onBack={goBack}
+        />
+      ) : currentPath === "/messages" ? (
+        <Messages
           currentUser={currentUser}
           onNavigate={navigate}
           onBack={goBack}

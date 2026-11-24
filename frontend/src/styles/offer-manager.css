@@ -53,3 +53,11 @@
 
 .modal-actions .modal-confirm { background: var(--ink); border-color: var(--ink); color: #fff; }
 .modal-actions .modal-confirm:hover:not(:disabled) { background: #1b2832; }
+
+.om-secondary {
+  width: 100%; min-height: 44px; margin: 0 0 14px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  border: 1px dashed var(--line-strong); border-radius: 999px;
+  background: transparent; color: var(--ink); font-weight: 600;
+}
+.om-secondary:hover { background: var(--sand); }

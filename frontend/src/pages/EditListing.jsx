@@ -491,6 +491,14 @@ function EditListing({ listingId, currentUser, onNavigate, onNotify, onBack }) {
               }}
             />
 
+            {listingStatus === "awaiting_decision" && (
+              <p className="listing-form-hint listing-form-full">
+                Offers have closed and are waiting for your decision. Choose
+                a deadline in the future to reopen this listing for more
+                offers.
+              </p>
+            )}
+
             {(listingStatus === "sold" || listingStatus === "closed") && (
               <p className="listing-form-hint listing-form-full">
                 This listing is already {listingStatus}, so changing the

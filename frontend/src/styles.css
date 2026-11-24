@@ -1,3 +1,8 @@
+/* ==========================================================================
+   Community Cart — global styles
+   One light theme, one typeface (DM Sans), mobile-first.
+   Page-specific styles live in src/styles/*.css and reuse these tokens.
+   ========================================================================== */
 
 :root {
   /* Colour */
@@ -421,6 +426,7 @@ button:disabled { cursor: not-allowed; }
 .listing-price { margin-top: 2px; font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
 .listing-location { display: flex; align-items: center; gap: 4px; margin-top: 2px; color: var(--muted); font-size: 13px; }
 .listing-location svg { flex: none; }
+.listing-seller { margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 .finds-message {
   margin: 0; padding: 40px 20px;
@@ -609,6 +615,8 @@ button:disabled { cursor: not-allowed; }
   border: 1px solid var(--line); border-radius: 999px;
   background: var(--card); font-size: 14px; font-weight: 500;
 }
+.listing-detail-seller { margin: 12px 0 0; color: var(--muted); font-size: 14px; }
+.listing-detail-seller strong { color: var(--ink); }
 .listing-detail-meta .listing-status { background: var(--orange); border-color: var(--orange); font-weight: 700; }
 
 .detail-jump { margin-top: 18px; width: 100%; }

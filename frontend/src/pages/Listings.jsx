@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import BackButton from "../components/BackButton";
+import { isOpenStatus } from "../utils/listings";
 
 import ListingCard from "../components/ListingCard";
 import { getListings } from "../services/listings";
@@ -28,7 +29,7 @@ function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
 
         if (isMounted) {
           setListings(
-            data.filter((listing) => listing.status === "active")
+            data.filter((listing) => isOpenStatus(listing.status))
           );
         }
       } catch (err) {

@@ -15,7 +15,8 @@ import { sendInquiry } from "../services/inquiries";
 import { getMyOffer, submitOffer } from "../services/offers";
 import BackButton from "../components/BackButton";
 import OfferManager from "../components/OfferManager";
-import { formatDeadline, parseServerDate } from "../utils/dates";
+import { formatDeadline, parseServerDate, timeAgo } from "../utils/dates";
+import { isOpenStatus } from "../utils/listings";
 
 function formatPrice(price) {
   return new Intl.NumberFormat("en-KE", {
@@ -28,6 +29,7 @@ function formatPrice(price) {
 const STATUS_LABELS = {
   active: "Open for offers",
   open_for_offers: "Open for offers",
+  awaiting_decision: "Seller is choosing",
   sold: "Sold",
   closed: "Closed",
   pending: "Pending",
@@ -151,7 +153,7 @@ function ListingDetails({
       await sendInquiry(listingId, inquiryMessage.trim());
 
       setInquiryMessage("");
-      onNotify?.("Your inquiry has been sent to the seller");
+      onNotify?.("Inquiry sent. The seller's reply will appear under Messages");
     } catch (err) {
       onNotify?.(err.message || "Unable to send your inquiry");
     } finally {
@@ -219,9 +221,48 @@ function ListingDetails({
   }
 
   // "active" = no offers yet, "open_for_offers" = at least one offer received.
-  const isOpen =
-    listing.status === "active" || listing.status === "open_for_offers";
+  const isOpen = isOpenStatus(listing.status);
   const canMakeOffer = isOpen && !isOwner;
+
+  const inquiryCard = (
+      <div className="detail-action-card">
+        <div className="detail-card-heading">
+          <MessageCircle size={19} />
+          <h2>Ask the seller</h2>
+        </div>
+
+        <p>
+          Have a question about this item? Send the seller
+          a message.
+        </p>
+
+        <form onSubmit={handleInquirySubmit}>
+          <label htmlFor="inquiry-message">
+            Your message
+          </label>
+
+          <textarea
+            id="inquiry-message"
+            value={inquiryMessage}
+            onChange={(event) =>
+              setInquiryMessage(event.target.value)
+            }
+            placeholder="Hi, is this item still available?"
+            rows={4}
+            required
+          />
+
+          <button
+            type="submit"
+            className="detail-submit-button"
+            disabled={sendingInquiry}
+          >
+            <Send size={16} />
+            {sendingInquiry ? "Sending..." : "Send inquiry"}
+          </button>
+        </form>
+      </div>
+  );
 
   const deadline = parseServerDate(listing.offer_ends_at);
   const offersClosed = Boolean(deadline && deadline.getTime() < Date.now());
@@ -256,6 +297,19 @@ function ListingDetails({
             <p className="listing-detail-price">
               {formatPrice(listing.price)}
             </p>
+
+            {(listing.seller_name || listing.created_at) && (
+              <p className="listing-detail-seller">
+                {listing.seller_name && (
+                  <>
+                    Listed by <strong>{listing.seller_name}</strong>
+                  </>
+                )}
+                {listing.seller_name && listing.created_at && " · "}
+                {listing.created_at &&
+                  `posted ${timeAgo(parseServerDate(listing.created_at))}`}
+              </p>
+            )}
 
             <div className="listing-detail-meta">
               {listing.condition && (
@@ -331,6 +385,7 @@ function ListingDetails({
               <OfferManager
                 listing={listing}
                 onNotify={onNotify}
+                onNavigate={onNavigate}
                 onStatusChange={(status) =>
                   setListing((previous) =>
                     previous && previous.status !== status
@@ -342,6 +397,7 @@ function ListingDetails({
             </>
           ) : !isOpen ? (
             myOffer?.is_winner ? (
+              <>
               <div className="detail-action-card">
                 <div className="detail-card-heading">
                   <CheckCircle2 size={20} />
@@ -353,53 +409,30 @@ function ListingDetails({
                   a message to arrange the next steps.
                 </p>
               </div>
+              {inquiryCard}
+              </>
             ) : (
+              <>
               <div className="detail-action-card">
-                <h2>Listing unavailable</h2>
+                <h2>
+                  {listing.status === "awaiting_decision"
+                    ? "Offers are closed"
+                    : "Listing unavailable"}
+                </h2>
                 <p>
-                  This listing is no longer accepting inquiries or offers.
+                  {listing.status === "awaiting_decision"
+                    ? myOffer
+                      ? "The seller is choosing between the offers received. Follow your offer under My offers."
+                      : "The deadline has passed and the seller is choosing between the offers received."
+                    : "This listing is no longer accepting inquiries or offers."}
                 </p>
               </div>
+              {listing.status === "awaiting_decision" && inquiryCard}
+              </>
             )
           ) : (
             <>
-              <div className="detail-action-card">
-                <div className="detail-card-heading">
-                  <MessageCircle size={19} />
-                  <h2>Ask the seller</h2>
-                </div>
-
-                <p>
-                  Have a question about this item? Send the seller
-                  a message.
-                </p>
-
-                <form onSubmit={handleInquirySubmit}>
-                  <label htmlFor="inquiry-message">
-                    Your message
-                  </label>
-
-                  <textarea
-                    id="inquiry-message"
-                    value={inquiryMessage}
-                    onChange={(event) =>
-                      setInquiryMessage(event.target.value)
-                    }
-                    placeholder="Hi, is this item still available?"
-                    rows={4}
-                    required
-                  />
-
-                  <button
-                    type="submit"
-                    className="detail-submit-button"
-                    disabled={sendingInquiry}
-                  >
-                    <Send size={16} />
-                    {sendingInquiry ? "Sending..." : "Send inquiry"}
-                  </button>
-                </form>
-              </div>
+              {inquiryCard}
 
               <div className="detail-action-card offer-card" id="offer-card">
                 <div className="detail-card-heading">

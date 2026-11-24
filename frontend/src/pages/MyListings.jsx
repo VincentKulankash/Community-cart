@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Edit3, HandCoins, Plus, Trash2 } from "lucide-react";
+import AccountTabs from "../components/AccountTabs";
 import BackButton from "../components/BackButton";
 import { deleteListing, getMyListings } from "../services/listings";
 import "../styles/listing-forms.css";
@@ -12,8 +13,15 @@ function formatPrice(price) {
   }).format(Number(price) || 0);
 }
 
+const STATUS_LABELS = {
+  active: "Active",
+  open_for_offers: "Has offers",
+  awaiting_decision: "Choose an offer",
+};
+
 function statusLabel(status) {
   if (!status) return "";
+  if (STATUS_LABELS[status]) return STATUS_LABELS[status];
   return status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, " ");
 }
 
@@ -118,6 +126,8 @@ function MyListings({ currentUser, onNavigate, onNotify, onBack }) {
           <Plus size={17} /> Create listing
         </button>
       </div>
+
+      <AccountTabs current="/my-listings" onNavigate={onNavigate} />
 
       {loading && (
         <p className="listing-form-status" role="status">Loading your listings...</p>

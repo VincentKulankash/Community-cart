@@ -5,6 +5,7 @@ import Manifesto from "../components/Manifesto";
 import SellStrip from "../components/SellStrip";
 import ListingCard from "../components/ListingCard";
 import { getListings } from "../services/listings";
+import { isOpenStatus } from "../utils/listings";
 
 const HOMEPAGE_LISTING_LIMIT = 8;
 
@@ -34,7 +35,7 @@ function Home({
         }
 
         if (isMounted) {
-          setListings(data.filter((listing) => listing.status === "active"));
+          setListings(data.filter((listing) => isOpenStatus(listing.status)));
         }
       } catch (err) {
         if (isMounted) {
@@ -56,18 +57,11 @@ function Home({
 
   const displayedListings = listings.slice(0, HOMEPAGE_LISTING_LIMIT);
 
-  // Prefer listings that have a photo for the hero collage.
-  const featured = [
-    ...listings.filter((listing) => listing.image_url),
-    ...listings.filter((listing) => !listing.image_url),
-  ].slice(0, 3);
-
   return (
     <main>
       <Hero
         onShowAllFinds={onShowAllFinds}
         onCreateListing={onCreateListing}
-        featured={featured}
       />
 
       <section

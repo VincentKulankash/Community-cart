@@ -1,3 +1,4 @@
+/* Saved listings page. Uses the tokens defined in src/styles.css. */
 
 .favorites-page {
   padding: clamp(16px, 3vw, 40px) var(--gutter) clamp(32px, 6vw, 72px);

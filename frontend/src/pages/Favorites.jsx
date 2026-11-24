@@ -1,3 +1,4 @@
+import { isOpenStatus } from "../utils/listings";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Heart, LoaderCircle, Search } from "lucide-react";
 
@@ -272,14 +273,14 @@ export default function Favorites({
 
               {listings.filter(
                 (listing) =>
-                  listing.status === "active" &&
+                  isOpenStatus(listing.status) &&
                   !favoriteIds.has(Number(listing.id))
               ).length > 0 ? (
                 <div className="favorites-grid">
                   {listings
                     .filter(
                       (listing) =>
-                        listing.status === "active" &&
+                        isOpenStatus(listing.status) &&
                         !favoriteIds.has(Number(listing.id))
                     )
                     .map((listing, index) => (
