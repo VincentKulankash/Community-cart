@@ -28,7 +28,6 @@ mistune==3.4.0
 packaging==26.3
 pluggy==1.7.0
 psycopg2-binary==2.9.13
-pymongo==4.15.3
 pytest==7.2.0
 python-dateutil==3.0.0
 python-dotenv==1.0.0

@@ -6,7 +6,7 @@ from underground.database import MARKETPLACE_ID
 
 
 class UndergroundProductSchema(Schema):
-    id = fields.String(attribute="_id", dump_only=True)
+    id = fields.String(dump_only=True)
     name = fields.String(
         required=True,
         validate=validate.Length(min=1, max=150),

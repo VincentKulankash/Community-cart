@@ -1,47 +1,53 @@
-from bson.decimal128 import Decimal128
-from pymongo import ASCENDING, DESCENDING
+from decimal import Decimal
+from sqlalchemy import asc, desc, or_
 
-from underground.database import MARKETPLACE_ID
+from extensions import db
+from models import UndergroundProduct
 
 SORT_FIELDS = {
-    "newest": [("created_at", DESCENDING), ("_id", ASCENDING)],
-    "price_asc": [("price", ASCENDING), ("_id", ASCENDING)],
-    "price_desc": [("price", DESCENDING), ("_id", ASCENDING)],
-    "rating": [("average_rating", DESCENDING), ("_id", ASCENDING)],
+    "newest": (desc(UndergroundProduct.created_at), asc(UndergroundProduct.id)),
+    "price_asc": (asc(UndergroundProduct.price), asc(UndergroundProduct.id)),
+    "price_desc": (desc(UndergroundProduct.price), asc(UndergroundProduct.id)),
+    "rating": (desc(UndergroundProduct.average_rating), asc(UndergroundProduct.id)),
 }
 
 
-def search_products(collection, filters):
-    query = {"marketplace": MARKETPLACE_ID}
+def search_products(filters):
+    query = UndergroundProduct.query
+
     for field in ("category", "subcategory", "availability"):
         value = filters.get(field)
         if value is not None:
-            query[field] = value
+            query = query.filter(getattr(UndergroundProduct, field) == value)
 
     search_term = (filters.get("q") or "").strip()
     if search_term:
-        query["$text"] = {"$search": search_term}
+        pattern = f"%{search_term}%"
+        query = query.filter(
+            or_(
+                UndergroundProduct.name.ilike(pattern),
+                UndergroundProduct.description.ilike(pattern),
+            )
+        )
 
-    price_range = {}
     if filters.get("min_price") is not None:
-        price_range["$gte"] = Decimal128(filters["min_price"])
+        query = query.filter(UndergroundProduct.price >= Decimal(filters["min_price"]))
     if filters.get("max_price") is not None:
-        price_range["$lte"] = Decimal128(filters["max_price"])
-    if price_range:
-        query["price"] = price_range
+        query = query.filter(UndergroundProduct.price <= Decimal(filters["max_price"]))
 
+    total = query.count()
     page = filters["page"]
     per_page = filters["per_page"]
-    cursor = (
-        collection.find(query)
-        .sort(SORT_FIELDS[filters["sort"]])
-        .skip((page - 1) * per_page)
+
+    items = (
+        query.order_by(*SORT_FIELDS[filters["sort"]])
+        .offset((page - 1) * per_page)
         .limit(per_page)
+        .all()
     )
-    total = collection.count_documents(query)
 
     return {
-        "items": list(cursor),
+        "items": items,
         "page": page,
         "per_page": per_page,
         "total": total,
@@ -49,21 +55,15 @@ def search_products(collection, filters):
     }
 
 
-def get_product(collection, product_id):
-    return collection.find_one(
-        {
-            "_id": product_id,
-            "marketplace": MARKETPLACE_ID,
-        }
-    )
+def get_product(product_id):
+    return db.session.get(UndergroundProduct, product_id)
 
 
-def get_categories(collection):
-    return sorted(
-        category
-        for category in collection.distinct(
-            "category",
-            {"marketplace": MARKETPLACE_ID},
-        )
-        if isinstance(category, str) and category
+def get_categories():
+    rows = (
+        db.session.query(UndergroundProduct.category)
+        .distinct()
+        .order_by(UndergroundProduct.category.asc())
+        .all()
     )
+    return [cat for (cat,) in rows if isinstance(cat, str) and cat]

@@ -250,3 +250,23 @@ class Offer(db.Model):
         "User",
         back_populates="offers"
     )
+
+class UndergroundProduct(db.Model):
+    __tablename__ = "underground_product"
+
+    id = db.Column(db.Integer, primary_key=True)
+    seed_key = db.Column(db.String(120), unique=True, index=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    price = db.Column(db.Numeric(12, 2), nullable=False)
+    category = db.Column(db.String(100), nullable=False, index=True)
+    subcategory = db.Column(db.String(100))
+    image = db.Column(db.Text)
+    availability = db.Column(db.Boolean, nullable=False, default=True)
+    average_rating = db.Column(db.Float, nullable=False, default=0.0)
+    vendor_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

@@ -1,12 +1,9 @@
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from bson.decimal128 import Decimal128
-
 from app import create_app
 from extensions import db
-from models import User
-from underground.database import MARKETPLACE_ID, get_underground_products
+from models import UndergroundProduct, User
 from underground.schemas import underground_product_schema
 
 DEMO_PRODUCTS = (
@@ -556,62 +553,39 @@ DEMO_PRODUCTS += tuple(
     for key, name, category, subcategory, price in _MARKET_PRODUCTS
 )
 
-def seed_underground_products(collection, vendor_ids, now=None):
+def seed_underground_products(vendor_ids):
     vendor_ids = tuple(vendor_ids)
-    if not vendor_ids or any(type(vendor_id) is not int or vendor_id < 1 for vendor_id in vendor_ids):
+    if not vendor_ids or any(type(v) is not int or v < 1 for v in vendor_ids):
         raise ValueError("At least one existing positive integer user ID is required.")
 
-    created_at = now or datetime.now(timezone.utc)
+    existing = {p.seed_key: p for p in UndergroundProduct.query.all()}
     for index, seed_product in enumerate(DEMO_PRODUCTS):
-        product = {
-            key: value
-            for key, value in seed_product.items()
-            if key != "seed_key"
-        }
+        data = {k: v for k, v in seed_product.items() if k != "seed_key"}
         validated = underground_product_schema.load(
-            {
-                **product,
-                "vendor_id": vendor_ids[index % len(vendor_ids)],
-            }
+            {**data, "vendor_id": vendor_ids[index % len(vendor_ids)]}
         )
-        validated["price"] = Decimal128(Decimal(validated["price"]))
-        validated.update(
-            marketplace=MARKETPLACE_ID,
-            average_rating=0.0,
-            seed_key=seed_product["seed_key"],
-        )
+        validated["price"] = Decimal(validated["price"])
 
-        collection.update_one(
-            {
-                "marketplace": MARKETPLACE_ID,
-                "seed_key": seed_product["seed_key"],
-            },
-            {
-                "$set": validated,
-                "$setOnInsert": {"created_at": created_at},
-            },
-            upsert=True,
-        )
+        row = existing.get(seed_product["seed_key"])
+        if row is None:
+            row = UndergroundProduct(seed_key=seed_product["seed_key"])
+            db.session.add(row)
+        for field, value in validated.items():
+            setattr(row, field, value)
 
+    db.session.commit()
     return len(DEMO_PRODUCTS)
 
 
 def seed_database():
     app = create_app()
     with app.app_context():
-        vendor_ids = [
-            user_id
-            for (user_id,) in db.session.query(User.id).order_by(User.id).all()
-        ]
+        vendor_ids = [uid for (uid,) in db.session.query(User.id).order_by(User.id).all()]
         if not vendor_ids:
             raise RuntimeError(
                 "Create at least one Community Cart user before seeding Underground."
             )
-
-        count = seed_underground_products(
-            get_underground_products(),
-            vendor_ids,
-        )
+        count = seed_underground_products(vendor_ids)
         print(f"Synchronized {count} Underground demo catalog products.")
 
 
