@@ -1,0 +1,78 @@
+/* Error states and form alerts: er- classes only. */
+.er-state {
+  width: min(560px, calc(100% - 2rem));
+  margin: 3rem auto;
+  padding: 2rem 1.5rem;
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  text-align: center;
+  border: 1px dashed color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 20px;
+}
+
+.er-icon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 50%;
+}
+
+.er-state h2 {
+  margin: 0;
+  font-size: 1.4rem;
+}
+
+.er-state p {
+  margin: 0;
+  opacity: 0.8;
+  line-height: 1.55;
+}
+
+.er-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+.er-btn {
+  min-height: 44px;
+  padding: 0 1.2rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.er-btn:hover {
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.er-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.er-alert {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid color-mix(in srgb, #c0392b 55%, transparent);
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: color-mix(in srgb, #c0392b 9%, transparent);
+}
+
+.er-alert p {
+  margin: 0;
+}
+
+.er-alert ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+}

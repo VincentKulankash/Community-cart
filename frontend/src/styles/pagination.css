@@ -1,0 +1,76 @@
+/* Pagination controls: pg- classes only, colors inherit from the page. */
+.pg {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  margin: 2.5rem 0 1rem;
+}
+
+.pg-summary {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.pg-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.pg-btn {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.pg-btn:hover:not(:disabled):not(.is-current) {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-color: currentColor;
+}
+
+.pg-btn.is-current {
+  border-color: currentColor;
+  background: color-mix(in srgb, currentColor 14%, transparent);
+  font-weight: 700;
+  cursor: default;
+}
+
+.pg-btn:disabled:not(.is-current) {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.pg-btn:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.pg-gap {
+  min-width: 28px;
+  display: grid;
+  place-items: center;
+  opacity: 0.6;
+}
+
+@media (max-width: 520px) {
+  .pg-prev span,
+  .pg-next span {
+    display: none;
+  }
+}
