@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Check } from "lucide-react";
 
 import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
 import Footer from "./components/Footer";
 
 import Home from "./pages/Home";
@@ -17,6 +18,7 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 
 import { getCurrentUser, logoutUser } from "./services/auth";
+import { AUTH_EXPIRED_EVENT } from "./services/api";
 import {
   getFavorites,
   addFavorite,
@@ -54,6 +56,7 @@ function App() {
   }, []);
 
   const [currentUser, setCurrentUser] = useState(null);
+  const [authChecked, setAuthChecked] = useState(false);
 
   /*
    * Get the currently logged-in user.
@@ -61,7 +64,8 @@ function App() {
   useEffect(() => {
     getCurrentUser()
       .then(setCurrentUser)
-      .catch(() => setCurrentUser(null));
+      .catch(() => setCurrentUser(null))
+      .finally(() => setAuthChecked(true));
   }, []);
 
   /*
@@ -130,6 +134,25 @@ function App() {
 
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  /*
+   * Expired or missing session: a protected request that returns 401
+   * clears the user and sends them to the login page.
+   */
+  useEffect(() => {
+    function handleAuthExpired() {
+      setCurrentUser(null);
+      setSavedItems([]);
+      navigate("/login");
+      setToast("Your session has expired. Please sign in again.");
+    }
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+
+    return () => {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    };
+  }, []);
 
   /*
    * Header shadow on scroll and reveal-on-scroll animations.
@@ -316,6 +339,13 @@ function App() {
     : null;
 
   /*
+   * Pages that need a signed-in user.
+   */
+  const requiresAuth =
+    ["/my-listings", "/my-offers", "/messages", "/create-listing", "/favorites"].includes(currentPath) ||
+    Boolean(selectedEditListingId);
+
+  /*
    * Authentication pages.
    */
   if (currentPath === "/login") {
@@ -345,7 +375,14 @@ function App() {
         onCreateListing={openSellMessage}
       />
 
-      {selectedEditListingId ? (
+      {requiresAuth && !currentUser ? (
+        <ProtectedRoute
+          currentUser={currentUser}
+          authChecked={authChecked}
+          onNavigate={navigate}
+          onNotify={setToast}
+        />
+      ) : selectedEditListingId ? (
         <EditListing
           listingId={selectedEditListingId}
           currentUser={currentUser}
