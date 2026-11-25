@@ -17,6 +17,7 @@ import Login from "./pages/login";
 import Register from "./pages/register";
 
 import { getCurrentUser, logoutUser } from "./services/auth";
+import { AUTH_EXPIRED_EVENT } from "./services/api";
 import {
   getFavorites,
   addFavorite,
@@ -130,6 +131,25 @@ function App() {
 
     return () => window.clearTimeout(timer);
   }, [toast]);
+
+  /*
+   * Expired or missing session: a protected request that returns 401
+   * clears the user and sends them to the login page.
+   */
+  useEffect(() => {
+    function handleAuthExpired() {
+      setCurrentUser(null);
+      setSavedItems([]);
+      navigate("/login");
+      setToast("Your session has expired. Please sign in again.");
+    }
+
+    window.addEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+
+    return () => {
+      window.removeEventListener(AUTH_EXPIRED_EVENT, handleAuthExpired);
+    };
+  }, []);
 
   /*
    * Header shadow on scroll and reveal-on-scroll animations.
