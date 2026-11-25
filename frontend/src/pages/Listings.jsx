@@ -1,96 +1,165 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
 import BackButton from "../components/BackButton";
-import { isOpenStatus } from "../utils/listings";
-
+import ErrorState from "../components/ErrorState";
+import Pagination from "../components/Pagination";
 import ListingCard from "../components/ListingCard";
 import { getListings } from "../services/listings";
+import { normalizePage } from "../services/pagination";
+import { isOpenStatus } from "../utils/listings";
 
-function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
-  const [listings, setListings] = useState([]);
-  const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All categories");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+const PER_PAGE = 12;
+const ALL = "All categories";
+
+function useDebounced(value, delay) {
+  const [debounced, setDebounced] = useState(value);
 
   useEffect(() => {
-    let isMounted = true;
+    const timer = window.setTimeout(() => setDebounced(value), delay);
+    return () => window.clearTimeout(timer);
+  }, [value, delay]);
+
+  return debounced;
+}
+
+function mergeCategories(previous, items) {
+  const set = new Set(previous);
+  items.forEach((item) => {
+    if (item?.category) set.add(item.category);
+  });
+  return [...set].sort((a, b) => a.localeCompare(b));
+}
+
+function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState(ALL);
+  const debouncedSearch = useDebounced(search.trim(), 350);
+
+  // The page number resets to 1 automatically whenever the filters change.
+  const filtersKey = `${debouncedSearch}|${category}`;
+  const [pageState, setPageState] = useState({ key: filtersKey, page: 1 });
+  const page = pageState.key === filtersKey ? pageState.page : 1;
+
+  const [result, setResult] = useState(null);
+  const [knownCategories, setKnownCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  const sectionRef = useRef(null);
+
+  // Category chips come from an unfiltered request, so they stay visible
+  // while a category or search is active.
+  useEffect(() => {
+    let cancelled = false;
+
+    getListings({ per_page: 100 })
+      .then((data) => {
+        if (cancelled) return;
+        setKnownCategories((prev) =>
+          mergeCategories(prev, normalizePage(data).items)
+        );
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
+
+  useEffect(() => {
+    let cancelled = false;
 
     async function loadListings() {
+      setLoading(true);
+      setError(null);
+
       try {
-        setLoading(true);
-        setError("");
+        const data = await getListings({
+          page,
+          per_page: PER_PAGE,
+          q: debouncedSearch,
+          category: category === ALL ? "" : category,
+        });
 
-        const data = await getListings();
+        if (cancelled) return;
 
-        if (!Array.isArray(data)) {
-          throw new Error("Unexpected response from the server.");
-        }
-
-        if (isMounted) {
-          setListings(
-            data.filter((listing) => isOpenStatus(listing.status))
-          );
-        }
+        const normalized = normalizePage(data);
+        setResult(normalized);
+        setKnownCategories((prev) => mergeCategories(prev, normalized.items));
       } catch (err) {
-        if (isMounted) {
-          setError(err.message || "Unable to load listings.");
-        }
+        if (!cancelled) setError(err);
       } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadListings();
 
     return () => {
-      isMounted = false;
+      cancelled = true;
     };
-  }, []);
+  }, [page, debouncedSearch, category, reloadKey]);
 
   const categories = useMemo(
     () => [
-      "All categories",
-      ...new Set(
-        listings.map((listing) => listing.category).filter(Boolean)
-      ),
+      ALL,
+      ...new Set([
+        ...knownCategories,
+        ...(category !== ALL ? [category] : []),
+      ]),
     ],
-    [listings]
+    [knownCategories, category]
   );
 
-  const filteredListings = useMemo(() => {
-    const query = search.trim().toLowerCase();
+  // Works with both response styles: a paginated object from the backend,
+  // or a plain array that we slice into pages here.
+  const view = useMemo(() => {
+    if (!result) return { items: [], pages: 1, total: 0, page: 1 };
 
-    return listings.filter((listing) => {
-      const matchesCategory =
-        category === "All categories" ||
-        listing.category === category;
+    const open = result.items.filter((listing) =>
+      isOpenStatus(listing.status)
+    );
 
-      const matchesSearch =
-        !query ||
-        [
-          listing.title,
-          listing.description,
-          listing.location,
-          listing.category,
-        ].some((value) => value?.toLowerCase().includes(query));
+    if (result.paginated) {
+      return {
+        items: open,
+        pages: result.pages,
+        total: result.total,
+        page: result.page,
+      };
+    }
 
-      return matchesCategory && matchesSearch;
-    });
-  }, [listings, search, category]);
+    const pages = Math.max(1, Math.ceil(open.length / PER_PAGE));
+    const current = Math.min(page, pages);
 
-  const hasFilters = category !== "All categories" || search.trim() !== "";
+    return {
+      items: open.slice((current - 1) * PER_PAGE, current * PER_PAGE),
+      pages,
+      total: open.length,
+      page: current,
+    };
+  }, [result, page]);
+
+  const hasFilters = category !== ALL || search.trim() !== "";
 
   function clearFilters() {
     setSearch("");
-    setCategory("All categories");
+    setCategory(ALL);
   }
+
+  function handlePageChange(next) {
+    setPageState({ key: filtersKey, page: next });
+    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  const initialLoading = loading && !result;
 
   return (
     <main className="marketplace-page">
-      <section className="finds-section marketplace-section">
+      <section
+        className="finds-section marketplace-section"
+        ref={sectionRef}
+      >
         <BackButton onBack={onBack} fallback="/" className="marketplace-back" />
 
         <div className="section-heading">
@@ -102,9 +171,7 @@ function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
 
             <h1>Find something good.</h1>
 
-            <p>
-              Discover things worth giving a second home.
-            </p>
+            <p>Discover things worth giving a second home.</p>
           </div>
         </div>
 
@@ -140,24 +207,24 @@ function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
           </div>
         </div>
 
-        {loading && (
+        {initialLoading && (
           <p className="finds-message" role="status">
             Loading marketplace listings...
           </p>
         )}
 
         {!loading && error && (
-          <p className="finds-message finds-error" role="alert">
-            {error}
-          </p>
+          <ErrorState
+            error={error}
+            onRetry={() => setReloadKey((key) => key + 1)}
+          />
         )}
 
-        {!loading && !error && (
+        {!error && result && (
           <>
             <div className="marketplace-results-bar">
               <p className="marketplace-count" role="status">
-                {filteredListings.length}{" "}
-                {filteredListings.length === 1 ? "find" : "finds"} available
+                {view.total} {view.total === 1 ? "find" : "finds"} available
               </p>
 
               {hasFilters && (
@@ -171,9 +238,9 @@ function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
               )}
             </div>
 
-            {filteredListings.length > 0 ? (
-              <div className="listing-grid">
-                {filteredListings.map((listing, index) => (
+            {view.items.length > 0 ? (
+              <div className="listing-grid" aria-busy={loading}>
+                {view.items.map((listing, index) => (
                   <ListingCard
                     key={listing.id}
                     listing={listing}
@@ -187,11 +254,21 @@ function Listings({ onNavigate, onBack, savedItems = [], onToggleSaved }) {
                 ))}
               </div>
             ) : (
-              <p className="finds-message">
-                No listings match your search. Try another keyword or
-                category.
-              </p>
+              !loading && (
+                <p className="finds-message">
+                  No listings match your search. Try another keyword or
+                  category.
+                </p>
+              )
             )}
+
+            <Pagination
+              page={view.page}
+              pages={view.pages}
+              total={view.total}
+              onPageChange={handlePageChange}
+              disabled={loading}
+            />
           </>
         )}
       </section>
