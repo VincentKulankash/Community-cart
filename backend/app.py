@@ -58,6 +58,7 @@ def create_app(config_class=Config):
     from routes.listings import listings_bp
     from routes.offers import offers_bp
     from routes.cart import cart_bp
+    from routes.payments import payments_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(favorites_bp)
@@ -65,6 +66,7 @@ def create_app(config_class=Config):
     app.register_blueprint(listings_bp)
     app.register_blueprint(offers_bp)
     app.register_blueprint(cart_bp)
+    app.register_blueprint(payments_bp)
 
     @app.errorhandler(404)
     def not_found(error):

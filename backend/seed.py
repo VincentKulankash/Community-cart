@@ -256,21 +256,17 @@ OFFER_DATA = [
     {"buyer_email": "maya.chen@example.com", "listing_title": "Insulated camping tent", "amount": "70.00", "message": "Would you accept $70?"},
 ]
 
-def _clear_old_data():
-    """Wipe all existing data. Orders matters because of foreign keys"""
-    db.session.query(Offer).delete()
-    db.session.query(Inquiry).delete()
-    db.session.query(Favorite).delete()
-    db.session.query(Listing).delete()
-    db.session.query(User).delete()
-    db.session.commit()
-    log.info("Cleared existing data.")
-
-
 def _seed_users():
     user_schema = UserSchema()
     users_by_email = {}
+
     for raw in USER_DATA:
+        existing = User.query.filter_by(email=raw["email"]).first()
+
+        if existing:
+            users_by_email[existing.email] = existing
+            continue
+
         validated = user_schema.load({**raw, "password": SEED_PASSWORD})
         user = User(
             name=validated["name"],
@@ -280,28 +276,37 @@ def _seed_users():
         user.set_password(validated["password"])
         db.session.add(user)
         users_by_email[user.email] = user
+
     db.session.flush()
     return users_by_email
 
 
 def _seed_listings(users_by_email):
     listing_schema = ListingSchema()
-    user_by_location = {u.location: u for u in users_by_email.values()}
+    user_by_location = {
+        user.location: user
+        for user in users_by_email.values()
+        if user.location
+    }
+
     now = datetime.utcnow()
+    added = 0
 
-    listings_by_title = {}
-    for raw in LISTING_DATA:
-        raw = dict(raw)  # don't mutate module-level dicts
-        status = raw.pop("status", "active")             # not in ListingSchema
-        offer_days = raw.pop("offer_days", None)         # not in ListingSchema
+    for original in LISTING_DATA:
+        raw = dict(original)
 
+        if Listing.query.filter_by(title=raw["title"]).first():
+            continue
+
+        status = raw.pop("status", "active")
+        offer_days = raw.pop("offer_days", None)
         validated = listing_schema.load(raw)
 
         location = validated.get("location")
         seller = user_by_location.get(location)
+
         if seller is None:
-            seller = list(users_by_email.values())[len(listings_by_title) % len(users_by_email)]
-            log.warning("No user in %r; assigning %s as seller.", location, seller.email)
+            seller = next(iter(users_by_email.values()))
 
         listing = Listing(
             title=validated["title"],
@@ -313,14 +318,17 @@ def _seed_listings(users_by_email):
             location=location,
             status=status,
             offer_ends_at=(
-                now + timedelta(days=offer_days) if offer_days is not None else None
+                now + timedelta(days=offer_days)
+                if offer_days is not None else None
             ),
             user_id=seller.id,
         )
+
         db.session.add(listing)
-        listings_by_title[listing.title] = listing
+        added += 1
+
     db.session.flush()
-    return listings_by_title
+    return added
 
 
 def _seed_favorites(users_by_email, listings_by_title):
@@ -356,30 +364,21 @@ def _seed_offers(users_by_email, listings_by_title):
 
 def seed_database():
     app = create_app()
-    with app.app_context():
-        # Schema creation is left to migrations (`flask db upgrade`).
 
+    with app.app_context():
         try:
-            print('Clearing out old data...')
-            _clear_old_data()
             users_by_email = _seed_users()
-            listings_by_title = _seed_listings(users_by_email)
-            _seed_favorites(users_by_email, listings_by_title)
-            _seed_inquiries(users_by_email, listings_by_title)
-            _seed_offers(users_by_email, listings_by_title)
+            added_listings = _seed_listings(users_by_email)
             db.session.commit()
+
+            print("Additive seeding completed successfully.")
+            print(f"Sample users available: {len(users_by_email)}")
+            print(f"New listings added: {added_listings}")
+            print(f"Total database listings: {Listing.query.count()}")
+
         except Exception:
             db.session.rollback()
             raise
-
-        log.info(
-            "Seeded %d users, %d listings, %d favorites, %d inquiries, %d offers.",
-            len(users_by_email),
-            len(listings_by_title),
-            len(FAVORITE_DATA),
-            len(INQUIRY_DATA),
-            len(OFFER_DATA),
-        )
 
 
 if __name__ == "__main__":

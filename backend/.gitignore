@@ -4,4 +4,4 @@ __pycache__/
 .env
 instance/
 *.db
-.pytest_cache/
+.pytest_cache/.venv/

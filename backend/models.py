@@ -1,3 +1,4 @@
+
 from datetime import datetime
 
 from flask_login import UserMixin
@@ -14,12 +15,11 @@ class User(db.Model, UserMixin):
     location = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Relationships
     listings = db.relationship(
         "Listing",
         back_populates="seller",
         cascade="all, delete-orphan",
-        foreign_keys="Listing.user_id",   # disambiguate: user_id is the seller FK
+        foreign_keys="Listing.user_id",
     )
 
     favorites = db.relationship(
@@ -42,6 +42,12 @@ class User(db.Model, UserMixin):
 
     cart_items = db.relationship(
         "CartItem",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+
+    payments = db.relationship(
+        "Payment",
         back_populates="user",
         cascade="all, delete-orphan",
     )
@@ -100,11 +106,10 @@ class Listing(db.Model):
         CheckConstraint("price >= 0", name="check_listing_price"),
     )
 
-    # Relationships
     seller = db.relationship(
         "User",
         back_populates="listings",
-        foreign_keys=[user_id],           # disambiguate: seller is user_id
+        foreign_keys=[user_id],
     )
 
     favorites = db.relationship(
@@ -153,7 +158,6 @@ class Favorite(db.Model):
         nullable=False
     )
 
-    # Prevent a user from saving the same listing twice.
     __table_args__ = (
         UniqueConstraint(
             "user_id",
@@ -263,6 +267,7 @@ class Offer(db.Model):
         back_populates="offers"
     )
 
+
 class CartItem(db.Model):
     id = db.Column(db.Integer, primary_key=True)
 
@@ -310,4 +315,121 @@ class CartItem(db.Model):
     listing = db.relationship(
         "Listing",
         back_populates="cart_items"
+    )
+
+
+class Payment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False,
+        index=True
+    )
+
+    amount = db.Column(db.Numeric(10, 2), nullable=False)
+    currency = db.Column(
+        db.String(3),
+        nullable=False,
+        default="KES"
+    )
+
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="pending"
+    )
+
+    payment_method = db.Column(
+        db.String(30),
+        nullable=False,
+        default="mpesa_sandbox"
+    )
+
+    merchant_request_id = db.Column(
+        db.String(100),
+        unique=True
+    )
+
+    checkout_request_id = db.Column(
+        db.String(100),
+        unique=True
+    )
+
+    mpesa_receipt_number = db.Column(
+        db.String(100),
+        unique=True
+    )
+
+    result_code = db.Column(db.String(20))
+    result_description = db.Column(db.Text)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    __table_args__ = (
+        CheckConstraint(
+            "amount > 0",
+            name="check_payment_amount"
+        ),
+        CheckConstraint(
+            "status IN ('pending', 'succeeded', 'failed')",
+            name="check_payment_status"
+        ),
+    )
+
+    user = db.relationship(
+        "User",
+        back_populates="payments"
+    )
+
+    order_items = db.relationship(
+        "OrderItem",
+        back_populates="payment",
+        cascade="all, delete-orphan",
+    )
+
+
+class OrderItem(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    payment_id = db.Column(
+        db.Integer,
+        db.ForeignKey("payment.id"),
+        nullable=False,
+        index=True
+    )
+
+    listing_id = db.Column(
+        db.Integer,
+        db.ForeignKey("listing.id", ondelete="SET NULL"),
+        nullable=True
+    )
+
+    title = db.Column(db.String(150), nullable=False)
+    unit_price = db.Column(db.Numeric(10, 2), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    image_url = db.Column(db.String(500))
+
+    payment = db.relationship(
+        "Payment",
+        back_populates="order_items"
+    )
+
+    listing = db.relationship("Listing")
+
+    __table_args__ = (
+        CheckConstraint("unit_price > 0", name="check_order_item_price"),
+        CheckConstraint("quantity >= 1", name="check_order_item_quantity"),
     )
